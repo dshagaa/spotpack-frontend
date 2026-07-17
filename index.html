@@ -11,11 +11,13 @@
     import eventList from '/src/components/event-list.js';
     import createEvent from '/src/components/create-event.js';
     import eventDetail from '/src/components/event-detail.js';
+    import importModal from '/src/components/import-modal.js';
     document.addEventListener('alpine:init', () => {
       Alpine.data('apiKey', apiKey);
       Alpine.data('eventList', eventList);
       Alpine.data('createEvent', createEvent);
       Alpine.data('eventDetail', eventDetail);
+      Alpine.data('importModal', importModal);
     });
   </script>
 </head>
@@ -106,6 +108,11 @@
           <a href="#/" class="text-primary text-sm mb-4 inline-block">← Eventos</a>
           <h1 class="text-2xl font-bold text-white mt-2" x-text="event.name"></h1>
           <p class="text-sm text-gray-400 mt-1" x-show="event.location" x-text="event.location"></p>
+          <!-- Import button -->
+          <button @click="$dispatch('open-import-modal', event.id)"
+            class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            📸 Importar schedule
+          </button>
           <!-- Days -->
           <template x-for="day in days" :key="day.date">
             <div class="mt-6">
@@ -177,6 +184,45 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Import Schedule Modal -->
+  <div x-data="importModal"
+    @keydown.escape.window="open = false"
+    x-show="open"
+    x-transition
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div class="bg-surface rounded-xl p-6 w-full max-w-md mx-4 border border-gray-700" @click.stop>
+      <h2 class="text-xl font-bold text-white mb-4">📸 Importar schedule</h2>
+      <template x-if="!result">
+        <div>
+          <input type="file" accept="image/png,image/jpeg,image/webp"
+            @change="handleFile($el)"
+            class="w-full text-sm text-gray-400 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-white file:text-sm file:font-medium" />
+          <img :src="preview" x-show="preview" class="mt-4 rounded-lg max-h-48 object-contain mx-auto" />
+          <div x-show="error" class="text-danger text-sm mt-3" x-text="error"></div>
+          <div class="flex gap-3 justify-end mt-4">
+            <button @click="open = false; reset()"
+              class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
+            <button @click="submit" :disabled="!file || loading"
+              class="bg-primary hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              <span x-show="!loading">🤖 Enviar a MiMo</span>
+              <span x-show="loading">Procesando...</span>
+            </button>
+          </div>
+        </div>
+      </template>
+      <template x-if="result">
+        <div class="text-center">
+          <p class="text-success text-lg">✅ Importado!</p>
+          <p class="text-white mt-2"><span x-text="result.count"></span> items añadidos</p>
+          <button @click="open = false; location.reload()"
+            class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+            Cerrar
+          </button>
+        </div>
+      </template>
     </div>
   </div>
 </body>
