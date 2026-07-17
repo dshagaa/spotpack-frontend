@@ -8,8 +8,10 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <script type="module">
     import apiKey from '/src/components/api-key.js';
+    import eventList from '/src/components/event-list.js';
     document.addEventListener('alpine:init', () => {
       Alpine.data('apiKey', apiKey);
+      Alpine.data('eventList', eventList);
     });
   </script>
 </head>
@@ -47,9 +49,34 @@
       </div>
     </div>
 
-    <!-- Main content placeholder -->
-    <div class="text-center text-gray-500 mt-20">
-      <p class="text-lg">Conectá tu API key para empezar</p>
+    <!-- Event list -->
+    <div x-data="eventList" x-show="!loading">
+      <!-- Loading -->
+      <div x-show="loading" class="text-center text-gray-500 mt-20">
+        <p class="text-lg">Cargando eventos...</p>
+      </div>
+      <!-- Error -->
+      <div x-show="error" class="text-center text-danger mt-20">
+        <p class="text-lg" x-text="error"></p>
+      </div>
+      <!-- Event cards -->
+      <div x-show="events.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <template x-for="e in events" :key="e.id">
+          <a :href="`#/event/${e.id}`"
+            class="block bg-surface rounded-lg p-5 border border-gray-700 hover:border-primary transition-colors">
+            <h2 class="text-lg font-semibold text-white" x-text="e.name"></h2>
+            <p class="text-sm text-gray-400 mt-1" x-text="dateRange(e)"></p>
+            <p class="text-sm text-gray-500 mt-1" x-show="e.location" x-text="e.location"></p>
+            <span class="inline-block mt-3 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded"
+              x-text="e.item_count + ' items'"></span>
+          </a>
+        </template>
+      </div>
+      <!-- Empty state -->
+      <div x-show="events.length === 0" class="text-center text-gray-500 mt-20">
+        <p class="text-lg">No hay eventos todavía</p>
+        <p class="text-sm mt-2">Creá uno para empezar</p>
+      </div>
     </div>
   </div>
 </body>
