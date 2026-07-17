@@ -143,3 +143,4 @@ npm test        # → npx vitest run
 13. **No hardcoded API URLs.** Default: `http://127.0.0.1:54321/functions/v1`, overridable.
 14. **Keep index.html lean.** Components in `src/components/`, logic in JS files, templates in HTML via Alpine `x-` directives.
 15. **Keep AGENTS.md updated.** Every branch that changes architecture, patterns, or rules updates this file.
+16. **CI must pass before merge.** GitHub Actions runs `npm ci → npx vitest run → npm run build` on every push to feature branches.

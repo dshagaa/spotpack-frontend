@@ -28,3 +28,8 @@
 - AGENTS.md (15 rules for AI agents)
 - README.md (human setup guide)
 - MILESTONE.md (this file)
+
+### CI/CD (PR #8)
+- GitHub Actions workflow: npm ci → vitest → build
+- .gitattributes for LF line endings
+- Rule #16: CI must pass before merge
