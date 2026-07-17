@@ -10,14 +10,18 @@
     import apiKey from '/src/components/api-key.js';
     import eventList from '/src/components/event-list.js';
     import createEvent from '/src/components/create-event.js';
+    import eventDetail from '/src/components/event-detail.js';
     document.addEventListener('alpine:init', () => {
       Alpine.data('apiKey', apiKey);
       Alpine.data('eventList', eventList);
       Alpine.data('createEvent', createEvent);
+      Alpine.data('eventDetail', eventDetail);
     });
   </script>
 </head>
-<body x-data class="min-h-screen">
+<body x-data="{ page: location.hash.startsWith('#/event/') ? 'detail' : 'list' }"
+  @hashchange.window="page = location.hash.startsWith('#/event/') ? 'detail' : 'list'"
+  class="min-h-screen">
   <div class="container mx-auto px-4 py-8">
     <!-- Header -->
     <div class="flex items-center justify-between mb-8">
@@ -52,7 +56,7 @@
     </div>
 
     <!-- Event list -->
-    <div x-data="eventList" x-show="!loading">
+    <div x-data="eventList" x-show="page === 'list'">
       <!-- Actions -->
       <div class="flex justify-end mb-4">
         <button @click="$dispatch('open-create-modal')"
@@ -86,6 +90,52 @@
         <p class="text-lg">No hay eventos todavía</p>
         <p class="text-sm mt-2">Creá uno para empezar</p>
       </div>
+    </div>
+
+    <!-- Event Detail -->
+    <div x-data="eventDetail" x-show="page === 'detail'">
+      <div x-show="loading" class="text-center text-gray-500 mt-20">
+        <p class="text-lg">Cargando evento...</p>
+      </div>
+      <div x-show="error" class="text-center text-danger mt-20">
+        <p class="text-lg" x-text="error"></p>
+        <a href="#/" class="text-primary text-sm mt-4 inline-block">← Volver</a>
+      </div>
+      <template x-if="event">
+        <div>
+          <a href="#/" class="text-primary text-sm mb-4 inline-block">← Eventos</a>
+          <h1 class="text-2xl font-bold text-white mt-2" x-text="event.name"></h1>
+          <p class="text-sm text-gray-400 mt-1" x-show="event.location" x-text="event.location"></p>
+          <!-- Days -->
+          <template x-for="day in days" :key="day.date">
+            <div class="mt-6">
+              <h2 class="text-lg font-semibold text-primary sticky top-0 bg-bg py-2"
+                x-text="formatDate(day.date)"></h2>
+              <div class="space-y-2 mt-2">
+                <template x-for="item in day.items" :key="item.id">
+                  <div class="bg-surface rounded-lg p-4 border border-gray-700">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="flex-1">
+                        <p class="text-white font-medium" x-text="item.title"></p>
+                        <p class="text-xs text-gray-400 mt-1" x-show="item.description" x-text="item.description"></p>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                          <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                            x-text="formatTime(item.start_time) + ' – ' + formatTime(item.end_time)"></span>
+                          <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                            x-text="item.room" x-show="item.room"></span>
+                          <span class="text-xs px-2 py-0.5 rounded" :class="badgeClass(item.classification)"
+                            x-text="item.classification"></span>
+                        </div>
+                      </div>
+                      <span class="text-sm" x-text="categoryIcon(item.category)"></span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
     </div>
   </div>
 
