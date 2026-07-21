@@ -14,7 +14,7 @@ beforeEach(() => {
   localStorage.clear();
   delete globalThis.Alpine;
   Object.defineProperty(window, 'location', {
-    value: { hash: '#/event/test-id-123' },
+    value: { hash: '#/event/test-id-123', pathname: '/event/test-id-123' },
     writable: true,
   });
 });

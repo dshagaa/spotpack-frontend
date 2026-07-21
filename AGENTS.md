@@ -108,12 +108,12 @@ The global store in `src/store.js` provides:
 
 ## Routing
 
-Hash-based SPA routing in `index.html` (x-data on `<body>`):
-- `#/` → event list (home)
-- `#/event/{id}` → event detail
-- `#/agenda` → Mi Agenda (attending items)
+Hash-free path-based SPA routing in `index.html` (x-data on `<body>`):
+- `/` → event list (home)
+- `/event/{id}` → event detail
+- `/agenda` → Mi Agenda (attending items)
 
-The router is driven by Alpine x-data and `@hashchange.window`; the last route and filters are restored from sessionStorage.
+The router uses `location.pathname` and `history.pushState()` with `@popstate.window` for back/forward. The last route and filters are restored from sessionStorage.
 
 ---
 
