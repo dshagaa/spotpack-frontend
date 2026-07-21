@@ -10,7 +10,8 @@ export default () => ({
   cachedAt: null,
 
   async init() {
-    if (location.pathname === '/' || location.pathname === '') await this.fetchEvents();
+    await this.fetchEvents();
+    this.$watch?.('$store.app.view', (view) => { if (view === 'list') this.fetchEvents(); });
     this.$watch?.('$store.app.refreshCounter', () => this.fetchEvents());
   },
 

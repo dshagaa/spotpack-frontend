@@ -18,10 +18,10 @@
     navigate(path) {
       history.pushState(null, '', path);
       this.setPage();
-      Alpine.store('app')?.refresh();
     },
     setPage() {
       this.page = location.pathname.startsWith('/event/') ? 'detail' : location.pathname === '/agenda' ? 'agenda' : 'list';
+      Alpine.store('app')?.setView(this.page);
       Alpine.store('app')?.rememberRoute(location.pathname);
     },
     showToast(message, type = '') {
@@ -30,7 +30,7 @@
       this.toastTimer = setTimeout(() => { this.toast.show = false; }, 4200);
     },
   }"
-  @popstate.window="setPage(); Alpine.store('app')?.refresh()"
+  @popstate.window="setPage()"
   @show-toast.window="showToast($event.detail.message, $event.detail.type)"
   x-init="setPage()"
   class="min-h-screen"
