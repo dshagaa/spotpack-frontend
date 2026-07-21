@@ -82,3 +82,25 @@
 - When marking an item as attending, checks for time overlaps with other attending items
 - Toast warning: "⚠️ 'Title' se solapa con: Other Title"
 
+## 2026-07-20 — Modern Ultra-Light Frontend
+
+### Visual rebuild
+- Mobile-first dark jaguar design with responsive desktop layout
+- Compact schedule timeline cards, mobile bottom navigation, responsive bottom-sheet modals
+- System font stack only; no runtime font or Alpine CDN request
+- Accessible focus states, skip link, semantic labels, 44px touch targets, reduced-motion support
+
+### Performance and persistence
+- Alpine.js bundled locally through Vite
+- Defensive storage helpers with versioned keys and bounded JSON writes
+- `localStorage` for attending state and API snapshots
+- `sessionStorage` for route, selected day, search, category, and adult-filter state
+- Cache-first API reads with stale fallback and explicit cache invalidation after mutations
+- Production service worker for same-origin app-shell caching and offline fallback
+- PWA manifest and offline page added
+
+### Verification
+- 75 Vitest tests passing
+- Production build passing
+- Built artifacts verified: service worker present, manifest present, Alpine CDN absent
+

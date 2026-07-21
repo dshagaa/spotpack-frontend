@@ -1,54 +1,88 @@
-// src/store.js — Alpine.js global store for shared state
-const ATTENDING_KEY = 'spotpack_attending';
+// src/store.js — shared UI preferences and local attending state
+import { KEYS, readLocal, readSession, writeLocal, writeSession } from './lib/storage.js';
 
-function getAttendingMap() {
-  try {
-    return JSON.parse(localStorage.getItem(ATTENDING_KEY) || '{}');
-  } catch {
-    return {};
-  }
+const DEFAULT_UI = {
+  route: '#/',
+  dayByEvent: {},
+  search: '',
+  category: 'all',
+  showAdult: false,
+};
+
+function loadUI() {
+  return { ...DEFAULT_UI, ...(readSession(KEYS.ui, {}) || {}) };
+}
+
+function loadAttending() {
+  return readLocal(KEYS.attending, {}) || {};
+}
+
+function saveAttending(value) {
+  writeLocal(KEYS.attending, value, 100_000);
 }
 
 document.addEventListener('alpine:init', () => {
   Alpine.store('app', {
-    // Bump this to trigger event list refresh across components
     refreshCounter: 0,
+    online: navigator.onLine,
+    ui: loadUI(),
+
+    init() {
+      window.addEventListener('online', () => { this.online = true; });
+      window.addEventListener('offline', () => { this.online = false; });
+    },
 
     refresh() {
-      this.refreshCounter++;
+      this.refreshCounter += 1;
     },
 
-    // --- Attending (localStorage) ---
+    rememberUI(patch) {
+      this.ui = { ...this.ui, ...patch };
+      writeSession(KEYS.ui, this.ui, 20_000);
+    },
 
-    /** Get attending status for an item */
+    restoreRoute() {
+      return this.ui.route || '#/';
+    },
+
+    rememberRoute(route) {
+      this.rememberUI({ route });
+    },
+
+    getDay(eventId, fallback) {
+      return this.ui.dayByEvent?.[eventId] || fallback;
+    },
+
+    rememberDay(eventId, day) {
+      this.rememberUI({ dayByEvent: { ...this.ui.dayByEvent, [eventId]: day } });
+    },
+
+    isAttending(eventId, itemId) {
+      return !!loadAttending()[`${eventId}:${itemId}`];
+    },
+
     getAttending(eventId, itemId) {
-      return getAttendingMap()[`${eventId}:${itemId}`] || false;
+      return this.isAttending(eventId, itemId);
     },
 
-    /** Toggle attending for an item */
     toggleAttending(eventId, itemId) {
-      const map = getAttendingMap();
+      const map = loadAttending();
       const key = `${eventId}:${itemId}`;
       map[key] = !map[key];
-      localStorage.setItem(ATTENDING_KEY, JSON.stringify(map));
+      saveAttending(map);
+      this.refreshCounter += 1;
       return map[key];
     },
 
-    /** Set attending explicitly */
     setAttending(eventId, itemId, value) {
-      const map = getAttendingMap();
+      const map = loadAttending();
       map[`${eventId}:${itemId}`] = !!value;
-      localStorage.setItem(ATTENDING_KEY, JSON.stringify(map));
+      saveAttending(map);
+      this.refreshCounter += 1;
     },
 
-    /** Get all attending item keys — used for Mi Agenda */
     getAllAttending() {
-      return getAttendingMap();
-    },
-
-    /** Check if an item is attending */
-    isAttending(eventId, itemId) {
-      return !!getAttendingMap()[`${eventId}:${itemId}`];
+      return loadAttending();
     },
   });
 });

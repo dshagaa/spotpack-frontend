@@ -1,0 +1,13 @@
+{
+  "name": "SpotPack",
+  "short_name": "SpotPack",
+  "description": "Tu agenda de convenciones, sin complicaciones.",
+  "lang": "es",
+  "start_url": "/#/",
+  "display": "standalone",
+  "background_color": "#120d1b",
+  "theme_color": "#120d1b",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

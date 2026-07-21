@@ -2,9 +2,17 @@
 import { vi } from 'vitest';
 
 const store = {};
-globalThis.localStorage = {
-  getItem: vi.fn((key) => store[key] ?? null),
-  setItem: vi.fn((key, value) => { store[key] = value; }),
-  removeItem: vi.fn((key) => { delete store[key]; }),
-  clear: vi.fn(() => { Object.keys(store).forEach(k => delete store[k]); }),
-};
+function createStorage() {
+  const values = {};
+  return {
+    getItem: vi.fn((key) => values[key] ?? null),
+    setItem: vi.fn((key, value) => { values[key] = String(value); }),
+    removeItem: vi.fn((key) => { delete values[key]; }),
+    clear: vi.fn(() => { Object.keys(values).forEach(k => delete values[k]); }),
+    key: vi.fn((index) => Object.keys(values)[index] ?? null),
+    get length() { return Object.keys(values).length; },
+  };
+}
+
+globalThis.localStorage = createStorage();
+globalThis.sessionStorage = createStorage();

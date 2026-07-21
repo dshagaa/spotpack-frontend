@@ -33,9 +33,23 @@ supabase functions serve --no-verify-jwt
 ## Stack
 
 - **Vite** — build tool
-- **Alpine.js** — reactivity
+- **Alpine.js** — reactivity, bundled locally (no runtime CDN)
 - **Tailwind CSS** — estilos
 - **Vitest** — testing
+- **Service Worker + Cache API** — app shell offline
+- **localStorage** — API config, attending, bounded API snapshots
+- **sessionStorage** — route and filter restoration per session
+
+## Rendimiento y offline
+
+El frontend está diseñado mobile-first para dispositivos modestos:
+
+- System font stack: no descarga fuentes externas.
+- Render cached-first para eventos ya visitados; luego revalida con el backend.
+- Si una lectura falla, muestra el último snapshot con indicador de datos antiguos.
+- El service worker sólo cachea recursos estáticos same-origin; nunca cachea API keys ni respuestas autenticadas.
+- En producción se puede instalar como PWA y abrir la shell sin red después de una visita.
+- Los valores de almacenamiento están versionados, se parsean defensivamente y tienen límite de tamaño.
 
 ## API Docs
 
