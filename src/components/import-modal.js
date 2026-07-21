@@ -50,7 +50,7 @@ export default () => ({
     this.open = false;
     this.reset();
     // Refresh the event detail and list via store
-    if (typeof Alpine !== 'undefined') Alpine.store('app').refresh();
+    if (typeof window.Alpine !== 'undefined') window.Alpine.store('app').refresh();
   },
 
   reset() {

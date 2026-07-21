@@ -33,7 +33,7 @@ export default () => ({
   },
 
   appStore() {
-    return typeof Alpine !== 'undefined' ? Alpine.store('app') : null;
+    return window.Alpine?.store?.('app') || null;
   },
 
   rememberFilter(patch) {
