@@ -25,7 +25,7 @@ export default () => ({
     this.searchQuery = ui?.search || '';
     this.filterCategory = ui?.category || 'all';
     this.showAdult = !!ui?.showAdult;
-    await this.loadEvent();
+    if (location.pathname.startsWith('/event/')) await this.loadEvent();
     this.$watch?.('$store.app.refreshCounter', () => this.loadEvent());
     this.$watch?.('searchQuery', (value) => this.rememberFilter({ search: value }));
     this.$watch?.('filterCategory', (value) => this.rememberFilter({ category: value }));
