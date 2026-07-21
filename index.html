@@ -7,27 +7,69 @@
   <link rel="stylesheet" href="/src/style.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <script type="module">
+    import '/src/store.js';
     import apiKey from '/src/components/api-key.js';
     import eventList from '/src/components/event-list.js';
     import createEvent from '/src/components/create-event.js';
     import eventDetail from '/src/components/event-detail.js';
     import importModal from '/src/components/import-modal.js';
+    import myAgenda from '/src/components/my-agenda.js';
     document.addEventListener('alpine:init', () => {
       Alpine.data('apiKey', apiKey);
       Alpine.data('eventList', eventList);
       Alpine.data('createEvent', createEvent);
       Alpine.data('eventDetail', eventDetail);
       Alpine.data('importModal', importModal);
+      Alpine.data('myAgenda', myAgenda);
     });
   </script>
 </head>
-<body x-data="{ page: location.hash.startsWith('#/event/') ? 'detail' : 'list' }"
-  @hashchange.window="page = location.hash.startsWith('#/event/') ? 'detail' : 'list'"
-  class="min-h-screen">
+<body
+  x-data="{
+    page: location.hash.startsWith('#/event/') ? 'detail'
+        : location.hash === '#/agenda' ? 'agenda'
+        : 'list',
+    toast: { show: false, message: '', type: '' },
+    toastTimer: null,
+    showToast(msg, type='') {
+      this.toast = { show: true, message: msg, type };
+      clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => this.toast.show = false, 4000);
+    },
+  }"
+  @hashchange.window="page = location.hash.startsWith('#/event/') ? 'detail' : (location.hash === '#/agenda' ? 'agenda' : 'list')"
+  @show-toast.window="showToast($event.detail.message, $event.detail.type)"
+  x-init="$watch('page', (val, old) => { if (val !== old) Alpine.store('app').refresh(); })"
+  class="min-h-screen relative"
+>
+  <!-- Toast -->
+  <div
+    x-show="toast.show"
+    x-transition
+    class="fixed bottom-6 right-6 z-[100] max-w-sm bg-surface border border-gray-600 rounded-lg px-4 py-3 shadow-xl"
+    :class="toast.type === 'warning' ? 'border-warning/50' : ''"
+  >
+    <p class="text-sm text-white" x-text="toast.message"></p>
+  </div>
+
   <div class="container mx-auto px-4 py-8">
     <!-- Header -->
-    <div class="flex items-center justify-between mb-8">
-      <h1 class="text-3xl font-bold text-primary">🦁 SpotPack</h1>
+    <div class="flex items-center justify-between mb-8 flex-wrap gap-2">
+      <div class="flex items-center gap-4">
+        <h1 class="text-3xl font-bold text-primary">🐆 SpotPack</h1>
+        <nav class="flex gap-3 text-sm">
+          <a href="#/"
+            class="hover:text-primary transition-colors"
+            :class="page === 'list' ? 'text-primary font-medium' : 'text-gray-400'">
+            Eventos
+          </a>
+          <a href="#/agenda"
+            class="hover:text-primary transition-colors"
+            :class="page === 'agenda' ? 'text-primary font-medium' : 'text-gray-400'">
+            📋 Mi Agenda
+          </a>
+        </nav>
+      </div>
       <!-- API Key -->
       <div x-data="apiKey" class="flex items-center gap-2">
         <template x-if="!saved">
@@ -57,7 +99,7 @@
       </div>
     </div>
 
-    <!-- Event list -->
+    <!-- ========== EVENT LIST ========== -->
     <div x-data="eventList" x-show="page === 'list'">
       <!-- Actions -->
       <div class="flex justify-end mb-4">
@@ -75,7 +117,7 @@
         <p class="text-lg" x-text="error"></p>
       </div>
       <!-- Event cards -->
-      <div x-show="events.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div x-show="!loading && events.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <template x-for="e in events" :key="e.id">
           <a :href="`#/event/${e.id}`"
             class="block bg-surface rounded-lg p-5 border border-gray-700 hover:border-primary transition-colors">
@@ -88,13 +130,13 @@
         </template>
       </div>
       <!-- Empty state -->
-      <div x-show="events.length === 0" class="text-center text-gray-500 mt-20">
+      <div x-show="!loading && !error && events.length === 0" class="text-center text-gray-500 mt-20">
         <p class="text-lg">No hay eventos todavía</p>
         <p class="text-sm mt-2">Creá uno para empezar</p>
       </div>
     </div>
 
-    <!-- Event Detail -->
+    <!-- ========== EVENT DETAIL ========== -->
     <div x-data="eventDetail" x-show="page === 'detail'">
       <div x-show="loading" class="text-center text-gray-500 mt-20">
         <p class="text-lg">Cargando evento...</p>
@@ -108,22 +150,96 @@
           <a href="#/" class="text-primary text-sm mb-4 inline-block">← Eventos</a>
           <h1 class="text-2xl font-bold text-white mt-2" x-text="event.name"></h1>
           <p class="text-sm text-gray-400 mt-1" x-show="event.location" x-text="event.location"></p>
-          <!-- Import button -->
-          <button @click="$dispatch('open-import-modal', event.id)"
-            class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            📸 Importar schedule
-          </button>
+
+          <!-- Action buttons -->
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button @click="$dispatch('open-import-modal', event.id)"
+              class="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              📸 Importar schedule
+            </button>
+            <button @click="editEvent()"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              ✏️ Editar
+            </button>
+            <button @click="showDeleteConfirm = true"
+              class="bg-danger/20 hover:bg-danger/30 text-danger px-4 py-2 rounded-lg text-sm font-medium">
+              🗑️ Eliminar
+            </button>
+          </div>
+
+          <!-- Delete confirmation -->
+          <div x-show="showDeleteConfirm"
+            class="mt-4 bg-surface border border-danger/50 rounded-lg p-4">
+            <p class="text-white text-sm">¿Estás seguro de eliminar este evento y todos sus items?</p>
+            <div class="flex gap-2 mt-3">
+              <button @click="confirmDelete()" :disabled="deleting"
+                class="bg-danger hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm">
+                <span x-show="!deleting">Sí, eliminar</span>
+                <span x-show="deleting">Eliminando...</span>
+              </button>
+              <button @click="cancelDelete()"
+                class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">
+                Cancelar
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="mt-6 space-y-3">
+            <!-- Search -->
+            <input x-model="searchQuery" type="text" placeholder="🔍 Buscar por título o descripción..."
+              class="w-full bg-surface border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none" />
+
+            <!-- Category chips -->
+            <div class="flex flex-wrap gap-2">
+              <button @click="filterCategory = 'all'"
+                class="text-xs px-3 py-1 rounded-full transition-colors"
+                :class="filterCategory === 'all' ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
+                Todas
+              </button>
+              <template x-for="cat in ['panel','meetup','workshop','fursuit_games','dance','ceremony','other']" :key="cat">
+                <button @click="filterCategory = cat"
+                  class="text-xs px-3 py-1 rounded-full transition-colors"
+                  :class="filterCategory === cat ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
+                  <span x-text="categoryLabel(cat)"></span>
+                </button>
+              </template>
+            </div>
+
+            <!-- +18 toggle -->
+            <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
+              <input type="checkbox" x-model="showAdult"
+                class="accent-primary w-4 h-4 rounded" />
+              Mostrar contenido +18
+            </label>
+          </div>
+
           <!-- Days -->
           <template x-for="day in days" :key="day.date">
             <div class="mt-6">
-              <h2 class="text-lg font-semibold text-primary sticky top-0 bg-bg py-2"
+              <h2 class="text-lg font-semibold text-primary sticky top-0 bg-bg py-2 z-10"
                 x-text="formatDate(day.date)"></h2>
+
+              <!-- Hidden count -->
+              <p x-show="hiddenAdultCount(day.items) > 0" class="text-xs text-gray-500 mb-2">
+                <span x-text="hiddenAdultCount(day.items)"></span> eventos ocultos (contenido +18)
+              </p>
+
+              <p x-show="filteredItems(day.items).length === 0" class="text-sm text-gray-500 py-4 text-center">
+                No hay actividades que coincidan
+              </p>
+
               <div class="space-y-2 mt-2">
-                <template x-for="item in day.items" :key="item.id">
-                  <div class="bg-surface rounded-lg p-4 border border-gray-700">
+                <template x-for="item in filteredItems(day.items)" :key="item.id">
+                  <div class="bg-surface rounded-lg p-4 border border-gray-700"
+                    :class="isAttending(item) ? 'border-primary/40' : ''">
                     <div class="flex items-start justify-between gap-3">
-                      <div class="flex-1">
-                        <p class="text-white font-medium" x-text="item.title"></p>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2">
+                          <p class="text-white font-medium truncate" x-text="item.title"></p>
+                          <!-- Attending indicator -->
+                          <span x-show="isAttending(item)" class="text-primary flex-shrink-0" title="Voy">🐾</span>
+                        </div>
                         <p class="text-xs text-gray-400 mt-1" x-show="item.description" x-text="item.description"></p>
                         <div class="flex flex-wrap gap-2 mt-2">
                           <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
@@ -134,7 +250,16 @@
                             x-text="item.classification"></span>
                         </div>
                       </div>
-                      <span class="text-sm" x-text="categoryIcon(item.category)"></span>
+                      <div class="flex flex-col items-center gap-1 flex-shrink-0">
+                        <span class="text-sm" x-text="categoryIcon(item.category)"></span>
+                        <!-- Attending toggle -->
+                        <button @click="toggleAttending(item)"
+                          class="text-lg transition-colors"
+                          :class="isAttending(item) ? 'text-primary' : 'text-gray-600 hover:text-primary/60'"
+                          :title="isAttending(item) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'">
+                          <span x-text="isAttending(item) ? '🐾' : '○'"></span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </template>
@@ -144,17 +269,81 @@
         </div>
       </template>
     </div>
+
+    <!-- ========== MI AGENDA ========== -->
+    <div x-data="myAgenda" x-show="page === 'agenda'">
+      <h2 class="text-xl font-bold text-white mb-4">📋 Mi Agenda</h2>
+
+      <div x-show="loading" class="text-center text-gray-500 mt-20">
+        <p class="text-lg">Cargando tu agenda...</p>
+      </div>
+      <div x-show="error" class="text-center text-danger mt-20">
+        <p class="text-lg" x-text="error"></p>
+      </div>
+
+      <!-- Empty state -->
+      <div x-show="!loading && !error && events.length === 0"
+        class="text-center text-gray-500 mt-20">
+        <p class="text-lg">🐾 Nada por aquí...</p>
+        <p class="text-sm mt-2">Marcá eventos como "voy" desde el schedule para verlos acá</p>
+        <a href="#/" class="text-primary text-sm mt-4 inline-block hover:underline">← Ir a eventos</a>
+      </div>
+
+      <!-- Events with attending items -->
+      <div x-show="!loading && events.length > 0" class="space-y-8">
+        <template x-for="evt in events" :key="evt.id">
+          <div>
+            <h3 class="text-lg font-semibold text-primary" x-text="evt.name"></h3>
+            <p class="text-xs text-gray-400 mb-3" x-text="evt.location" x-show="evt.location"></p>
+            <template x-for="day in evt.days" :key="day.date">
+              <div class="mb-4">
+                <h4 class="text-sm font-medium text-gray-300 mb-2 sticky top-0 bg-bg py-1"
+                  x-text="formatDate(day.date)"></h4>
+                <div class="space-y-2">
+                  <template x-for="item in day.items" :key="item.id">
+                    <div class="bg-surface rounded-lg p-4 border border-gray-700 border-primary/40">
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                          <p class="text-white font-medium" x-text="item.title"></p>
+                          <div class="flex flex-wrap gap-2 mt-2">
+                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                              x-text="formatTime(item.start_time) + ' – ' + formatTime(item.end_time)"></span>
+                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                              x-text="item.room" x-show="item.room"></span>
+                            <span class="text-xs px-2 py-0.5 rounded" :class="badgeClass(item.classification)"
+                              x-text="item.classification"></span>
+                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
+                              x-text="categoryLabel(item.category)"></span>
+                          </div>
+                        </div>
+                        <button @click="removeAttending(item)"
+                          class="text-gray-500 hover:text-danger transition-colors flex-shrink-0 text-sm"
+                          title="Quitar de mi agenda">
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </div>
   </div>
 
-  <!-- Create Event Modal -->
+  <!-- ========== CREATE / EDIT EVENT MODAL ========== -->
   <div x-data="createEvent"
-    @open-create-modal.window="open = true"
     @keydown.escape.window="open = false"
     x-show="open"
     x-transition
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
     <div class="bg-surface rounded-xl p-6 w-full max-w-md mx-4 border border-gray-700" @click.stop>
-      <h2 class="text-xl font-bold text-white mb-4">Nuevo evento</h2>
+      <h2 class="text-xl font-bold text-white mb-4">
+        <span x-show="!isEdit">Nuevo evento</span>
+        <span x-show="isEdit">Editar evento</span>
+      </h2>
       <form @submit.prevent="submit">
         <input x-model="name" placeholder="Nombre del evento *" required
           class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-3 text-white text-sm focus:border-primary outline-none" />
@@ -173,21 +362,25 @@
         <input x-model="location" placeholder="Lugar (opcional)"
           class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-4 text-white text-sm focus:border-primary outline-none" />
         <div x-show="error" class="text-danger text-sm mb-3" x-text="error"></div>
-        <div x-show="success" class="text-success text-sm mb-3">✅ Creado!</div>
+        <div x-show="success" class="text-success text-sm mb-3">
+          <span x-show="!isEdit">✅ Creado!</span>
+          <span x-show="isEdit">✅ Guardado!</span>
+        </div>
         <div class="flex gap-3 justify-end">
           <button type="button" @click="open = false; reset()"
             class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
           <button type="submit" :disabled="loading"
             class="bg-primary hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            <span x-show="!loading">Crear</span>
-            <span x-show="loading">Creando...</span>
+            <span x-show="!loading && !isEdit">Crear</span>
+            <span x-show="!loading && isEdit">Guardar</span>
+            <span x-show="loading">Guardando...</span>
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Import Schedule Modal -->
+  <!-- ========== IMPORT SCHEDULE MODAL ========== -->
   <div x-data="importModal"
     @keydown.escape.window="open = false"
     x-show="open"
@@ -217,7 +410,7 @@
         <div class="text-center">
           <p class="text-success text-lg">✅ Importado!</p>
           <p class="text-white mt-2"><span x-text="result.count"></span> items añadidos</p>
-          <button @click="open = false; location.reload()"
+          <button @click="close()"
             class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
             Cerrar
           </button>

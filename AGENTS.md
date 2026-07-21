@@ -18,12 +18,13 @@
 │    main.js    ← Alpine init, router           │
 │    api.js     ← fetch wrapper for backend     │
 │    store.js   ← Alpine store (global state)   │
-│    components/                               │
-│      api-key.js       ← API key input        │
-│      event-list.js    ← Home (event cards)    │
-│      event-detail.js  ← Event + items        │
-│      create-event.js  ← Modal new event       │
-│      import-modal.js  ← Upload image → AI    │
+|    components/                               |
+|      api-key.js       ← API key input        |
+|      event-list.js    ← Home (event cards)    |
+|      event-detail.js  ← Event + items + filters + attending toggle |
+|      create-event.js  ← Modal new event       |
+|      import-modal.js  ← Upload image → AI    |
+|      my-agenda.js     ← "Mi Agenda" (attending items across events) |
 │  tests/                                      │
 │    api.test.js        ← Vitest unit tests     │
 │    e2e/               ← Playwright E2E        │
@@ -74,40 +75,27 @@ Base URL configurable via `localStorage.spotpack_api_url`. Default: `http://127.
 
 ---
 
-## Component State Pattern
+## Global State (Alpine Store)
 
-Every Alpine component follows this pattern:
+The global store in `src/store.js` provides:
 
-```js
-// src/components/thing.js
-export default () => ({
-  // reactive state
-  data: null,
-  loading: true,
-  error: null,
+- `refreshCounter` / `refresh()` — triggers component re-fetch
+- `getAttending(eventId, itemId)` — get attending status from localStorage
+- `toggleAttending(eventId, itemId)` / `setAttending(eventId, itemId, value)` — modify attending
+- `getAllAttending()` / `isAttending(eventId, itemId)` — query helpers
 
-  async init() {
-    try {
-      this.data = await fetchStuff();
-    } catch (e) {
-      this.error = e.message;
-    } finally {
-      this.loading = false;
-    }
-  },
-});
-```
-
-No global state yet — each component fetches independently.
+**Storage key:** `localStorage.spotpack_attending` = JSON object `{ "eventId:itemId": true/false }`
 
 ---
 
 ## Routing
 
-Hash-based SPA routing in `main.js`:
+Hash-based SPA routing in `index.html` (x-data on `<body>`):
 - `#/` → event list (home)
 - `#/event/{id}` → event detail
-- Alpine `x-effect` watches `location.hash`
+- `#/agenda` → Mi Agenda (attending items)
+
+The router is driven by Alpine x-data and @hashchange.window on the body element.
 
 ---
 
