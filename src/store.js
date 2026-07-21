@@ -26,6 +26,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.store('app', {
     refreshCounter: 0,
     view: 'list',
+    hasEnvKey: !!import.meta.env.VITE_SPOTPACK_API_KEY,
     online: navigator.onLine,
     ui: loadUI(),
 
