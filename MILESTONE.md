@@ -50,3 +50,35 @@
 - .gitattributes for LF line endings
 - Agent skills: alpine-js, playwright, tailwindcss, testing, jest
 - Rule #16: CI must pass before merge
+
+## 2026-07-20 — Attending, Agenda, Filters
+
+### Core Cleanup
+- Cleaned up Vite scaffold (removed template boilerplate)
+- Alpine.js global store (`src/store.js`) with refresh + attending system
+- Toast notification system for warnings
+
+### Attending Toggle (localStorage)
+- "🐾" paw toggle button per schedule item
+- Attending state stored in `localStorage.spotpack_attending`
+- Visual indicator: item card gets border highlight when marked
+- Powered by Alpine store helpers (getAttending, toggleAttending, setAttending)
+
+### Filters
+- Search bar: filter by title or description (debounced)
+- Category chips: Todas, Panel, Meetup, Taller, Fursuit Games, Baile, Ceremonia, Otro
+- 🔞 +18 toggle: hide/show adult content, counter shown
+- All filters combine with AND logic
+
+### Mi Agenda (#/agenda)
+- New route in header nav
+- New Alpine component (`src/components/my-agenda.js`)
+- Fetches all events, filters items with attending=true
+- Grouped by event → day
+- Remove button per item
+- Loading, error, and empty states
+
+### Conflict Detection
+- When marking an item as attending, checks for time overlaps with other attending items
+- Toast warning: "⚠️ 'Title' se solapa con: Other Title"
+
