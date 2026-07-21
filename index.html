@@ -18,6 +18,7 @@
     navigate(path) {
       history.pushState(null, '', path);
       this.setPage();
+      Alpine.store('app')?.refresh();
     },
     setPage() {
       this.page = location.pathname.startsWith('/event/') ? 'detail' : location.pathname === '/agenda' ? 'agenda' : 'list';
@@ -29,7 +30,7 @@
       this.toastTimer = setTimeout(() => { this.toast.show = false; }, 4200);
     },
   }"
-  @popstate.window="setPage()"
+  @popstate.window="setPage(); Alpine.store('app')?.refresh()"
   @show-toast.window="showToast($event.detail.message, $event.detail.type)"
   x-init="setPage(); if (location.pathname === '/' || location.pathname === '') { const saved = Alpine.store('app')?.restoreRoute(); if (saved && saved !== '/') history.pushState(null, '', saved); setPage(); }"
   class="min-h-screen"
