@@ -2,12 +2,18 @@
 import { clearAllSnapshots, clearSnapshot, getSnapshot, setSnapshot } from './lib/cache.js';
 import { KEYS, readLocalString } from './lib/storage.js';
 
+const ENV_KEY = typeof import.meta !== 'undefined' ? import.meta.env.VITE_SPOTPACK_API_KEY : '';
+
 const BASE = () => readLocalString(KEYS.apiUrl, '') ||
   'http://127.0.0.1:54321/functions/v1';
 
+function getApiKey() {
+  return readLocalString(KEYS.apiKey, '') || ENV_KEY;
+}
+
 function headers() {
   return {
-    'x-api-key': readLocalString(KEYS.apiKey, ''),
+    'x-api-key': getApiKey(),
     'Content-Type': 'application/json',
   };
 }
@@ -102,7 +108,7 @@ export async function importSchedule(imageFile, eventId) {
   fd.append('event_id', eventId);
   const res = await fetch(`${BASE()}/import-schedule`, {
     method: 'POST',
-    headers: { 'x-api-key': readLocalString(KEYS.apiKey, '') },
+    headers: { 'x-api-key': getApiKey() },
     body: fd,
   });
   if (!res.ok) {

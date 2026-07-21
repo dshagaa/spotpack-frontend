@@ -51,20 +51,22 @@
         </span>
       </a>
       <div class="flex items-center gap-2">
-        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs muted" :class="$store.app?.online ? 'text-success' : 'text-warning'">
+        <span class="flex items-center gap-1.5 text-xs" :class="$store.app?.online ? 'text-success' : 'text-warning'">
           <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
           <span x-text="$store.app?.online ? 'En línea' : 'Sin conexión'"></span>
         </span>
-        <div x-data="apiKey" class="relative">
-          <button @click="toggle" class="touch-target px-3 rounded-xl surface text-xs font-medium hover:border-primary transition-colors" :aria-label="saved ? 'Cambiar API key' : 'Conectar API'">
-            <span x-show="!saved">⚡ Conectar</span><span x-show="saved">⚡ API</span>
-          </button>
-          <div x-show="showInput" x-cloak x-transition class="absolute z-50 right-0 top-12 w-[min(18rem,calc(100vw-2rem))] surface-raised rounded-2xl p-3 shadow-2xl">
-            <p class="text-xs muted mb-2">Tu API key se guarda sólo en este dispositivo.</p>
-            <input x-model="key" type="password" placeholder="sk-sp-..." class="w-full bg-bg border border-line rounded-xl px-3 py-2 text-sm outline-none focus:border-primary" @keyup.enter="save()" />
-            <div class="flex justify-end gap-2 mt-2"><button @click="toggle" class="touch-target px-3 text-xs muted">Cancelar</button><button @click="save" class="touch-target px-3 rounded-xl bg-primary text-xs font-semibold">Guardar</button></div>
+        <template x-if="!$store.app?.hasEnvKey">
+          <div x-data="apiKey" class="relative">
+            <button @click="toggle" class="touch-target px-3 rounded-xl surface text-xs font-medium hover:border-primary transition-colors" :aria-label="saved ? 'Cambiar API key' : 'Conectar API'">
+              <span x-show="!saved">⚡ Conectar</span><span x-show="saved">⚡ API</span>
+            </button>
+            <div x-show="showInput" x-cloak x-transition class="absolute z-50 right-0 top-12 w-[min(18rem,calc(100vw-2rem))] surface-raised rounded-2xl p-3 shadow-2xl">
+              <p class="text-xs muted mb-2">Tu API key se guarda sólo en este dispositivo.</p>
+              <input x-model="key" type="password" placeholder="sk-sp-..." class="w-full bg-bg border border-line rounded-xl px-3 py-2 text-sm outline-none focus:border-primary" @keyup.enter="save()" />
+              <div class="flex justify-end gap-2 mt-2"><button @click="toggle" class="touch-target px-3 text-xs muted">Cancelar</button><button @click="save" class="touch-target px-3 rounded-xl bg-primary text-xs font-semibold">Guardar</button></div>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
