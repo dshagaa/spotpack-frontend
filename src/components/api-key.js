@@ -9,6 +9,8 @@ export default () => ({
     localStorage.setItem('spotpack_api_key', this.key.trim());
     this.saved = true;
     this.showInput = false;
+    // Trigger all components to re-fetch with the new key
+    if (typeof window.Alpine !== 'undefined') window.Alpine.store('app').refresh();
   },
 
   clear() {

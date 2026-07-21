@@ -29,6 +29,7 @@ export function getEvents() {
 }
 
 export function getEvent(id) {
+  if (!id) throw new Error('Missing event ID');
   return request(`/get-event?id=${encodeURIComponent(id)}`);
 }
 
