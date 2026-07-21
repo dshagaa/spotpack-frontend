@@ -12,12 +12,16 @@
 </head>
 <body
   x-data="{
-    page: location.hash.startsWith('#/event/') ? 'detail' : location.hash === '#/agenda' ? 'agenda' : 'list',
+    page: location.pathname.startsWith('/event/') ? 'detail' : location.pathname === '/agenda' ? 'agenda' : 'list',
     toast: { show: false, message: '', type: '' },
     toastTimer: null,
+    navigate(path) {
+      history.pushState(null, '', path);
+      this.setPage();
+    },
     setPage() {
-      this.page = location.hash.startsWith('#/event/') ? 'detail' : location.hash === '#/agenda' ? 'agenda' : 'list';
-      Alpine.store('app')?.rememberRoute(location.hash || '#/');
+      this.page = location.pathname.startsWith('/event/') ? 'detail' : location.pathname === '/agenda' ? 'agenda' : 'list';
+      Alpine.store('app')?.rememberRoute(location.pathname);
     },
     showToast(message, type = '') {
       this.toast = { show: true, message, type };
@@ -25,9 +29,9 @@
       this.toastTimer = setTimeout(() => { this.toast.show = false; }, 4200);
     },
   }"
-  @hashchange.window="setPage()"
+  @popstate.window="setPage()"
   @show-toast.window="showToast($event.detail.message, $event.detail.type)"
-  x-init="if (!location.hash || location.hash === '#/') { const saved = Alpine.store('app')?.restoreRoute(); if (saved && saved !== '#/') location.hash = saved; }"
+  x-init="setPage(); if (location.pathname === '/' || location.pathname === '') { const saved = Alpine.store('app')?.restoreRoute(); if (saved && saved !== '/') history.pushState(null, '', saved); setPage(); }"
   class="min-h-screen"
 >
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:left-3 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
@@ -38,7 +42,7 @@
 
   <header class="app-shell pt-5 md:pt-8">
     <div class="flex items-center justify-between gap-3">
-      <a href="#/" class="flex items-center gap-3 min-h-11" aria-label="SpotPack, inicio">
+      <a href="/" @click.prevent="navigate('/')" class="flex items-center gap-3 min-h-11" aria-label="SpotPack, inicio">
         <span class="grid place-items-center w-10 h-10 rounded-2xl bg-primary text-2xl shadow-lg shadow-primary/10">🐆</span>
         <span>
           <span class="block text-lg font-black tracking-tight">SpotPack</span>
@@ -64,8 +68,8 @@
     </div>
 
     <nav class="desktop-nav items-center gap-1 mt-8" aria-label="Principal">
-      <a href="#/" class="px-4 py-2 rounded-xl text-sm" :class="page === 'list' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Eventos</a>
-      <a href="#/agenda" class="px-4 py-2 rounded-xl text-sm" :class="page === 'agenda' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Mi agenda</a>
+      <a href="/" @click.prevent="navigate('/')" class="px-4 py-2 rounded-xl text-sm" :class="page === 'list' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Eventos</a>
+      <a href="/agenda" @click.prevent="navigate('/agenda')" class="px-4 py-2 rounded-xl text-sm" :class="page === 'agenda' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Mi agenda</a>
     </nav>
   </header>
 
@@ -90,7 +94,7 @@
       <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><div class="text-4xl">✦</div><h2 class="font-bold text-lg mt-3">Todavía no hay eventos</h2><p class="muted text-sm mt-2">Creá tu primer evento para empezar a armar tu agenda.</p><button @click="$dispatch('open-create-modal')" class="mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Crear evento</button></div>
       <div x-show="events.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <template x-for="event in events" :key="event.id">
-          <a :href="`#/event/${event.id}`" class="surface rounded-3xl p-5 min-h-40 flex flex-col justify-between hover:border-primary/70 hover:-translate-y-0.5 transition-all content-auto">
+          <a :href="`/event/${event.id}`" @click.prevent="navigate(`/event/${event.id}`)" class="surface rounded-3xl p-5 min-h-40 flex flex-col justify-between hover:border-primary/70 hover:-translate-y-0.5 transition-all content-auto">
             <div class="flex items-start justify-between gap-3"><div><p class="text-lg font-bold leading-tight" x-text="event.name"></p><p class="muted text-sm mt-2" x-text="dateRange(event)"></p></div><span class="text-primary text-xl">↗</span></div>
             <div class="flex items-center justify-between gap-3 mt-6"><span x-show="event.location" class="muted text-xs truncate" x-text="event.location"></span><span class="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold" x-text="`${event.item_count || 0} items`"></span></div>
           </a>
@@ -101,10 +105,10 @@
     <!-- EVENT DETAIL -->
     <section x-data="eventDetail" x-show="page === 'detail'" aria-labelledby="detail-heading">
       <div x-show="loading && !event" class="space-y-4"><div class="skeleton rounded-3xl h-32"></div><div class="skeleton rounded-3xl h-20"></div></div>
-      <div x-show="error && !event" x-cloak class="surface rounded-3xl p-6"><p class="text-danger text-sm" x-text="error"></p><a href="#/" class="inline-block mt-4 text-primary text-sm">← Volver a eventos</a></div>
+      <div x-show="error && !event" x-cloak class="surface rounded-3xl p-6"><p class="text-danger text-sm" x-text="error"></p><a href="/" @click.prevent="navigate('/')" class="inline-block mt-4 text-primary text-sm">← Volver a eventos</a></div>
       <template x-if="event">
         <div>
-          <a href="#/" class="inline-flex touch-target items-center text-sm muted hover:text-primary">← Eventos</a>
+          <a href="/" @click.prevent="navigate('/')" class="inline-flex touch-target items-center text-sm muted hover:text-primary">← Eventos</a>
           <div class="flex items-start justify-between gap-4 mt-4"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold" x-text="event.location || 'Schedule'" ></p><h1 id="detail-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1" x-text="event.name"></h1><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div><button @click="editEvent" class="touch-target shrink-0 surface rounded-xl px-3 text-sm" aria-label="Editar evento">✎</button></div>
           <div class="flex gap-2 mt-6 overflow-x-auto pb-1" role="tablist" aria-label="Días del evento">
             <template x-for="day in days" :key="day.date"><button @click="selectDay(day.date)" role="tab" :aria-selected="activeDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="activeDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'"><span class="block text-xs uppercase opacity-80" x-text="formatShortDate(day.date).split(' ')[0]"></span><span class="block text-sm font-bold mt-0.5" x-text="formatShortDate(day.date).replace(/^\S+ /, '')"></span></button></template>
@@ -137,14 +141,14 @@
       <div class="flex items-end justify-between gap-3 mb-6"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold">Tu selección</p><h1 id="agenda-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1">Mi agenda</h1><p class="muted text-sm mt-2">Tus próximos lugares para estar.</p></div><span class="text-3xl">🐾</span></div>
       <div x-show="loading" class="space-y-3"><div class="skeleton rounded-3xl h-24"></div><div class="skeleton rounded-3xl h-24"></div></div>
       <div x-show="error" x-cloak class="surface rounded-3xl border-danger/30 p-6"><p class="text-danger text-sm" x-text="error"></p></div>
-      <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><p class="text-4xl">🐾</p><h2 class="font-bold text-lg mt-3">Tu agenda está vacía</h2><p class="muted text-sm mt-2">Tocá el + en cualquier actividad para guardarla acá.</p><a href="#/" class="inline-block mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Ver eventos</a></div>
-      <div x-show="events.length > 0" class="space-y-8"><template x-for="event in events" :key="event.id"><section><div class="flex items-center justify-between gap-3 mb-3"><h2 class="text-xl font-black" x-text="event.name"></h2><a :href="`#/event/${event.id}`" class="touch-target grid place-items-center muted hover:text-primary" aria-label="Abrir evento">↗</a></div><template x-for="day in event.days" :key="day.date"><div class="mb-5"><h3 class="text-xs uppercase tracking-[.15em] text-primary font-bold mb-2" x-text="formatDate(day.date)"></h3><div class="space-y-2"><template x-for="item in day.items" :key="item.id"><article class="surface rounded-2xl p-4 flex items-center gap-3" :class="hasConflict(item, day) ? 'border-warning/60' : 'border-primary/40'"><div class="w-14 shrink-0"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div><div class="min-w-0 flex-1"><h4 class="font-bold truncate" x-text="item.title"></h4><div class="flex flex-wrap gap-1.5 mt-2"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span></div><p x-show="hasConflict(item, day)" class="text-warning text-xs mt-2">⚠️ Se solapa con otra actividad</p></div><button @click="removeAttending(item)" class="touch-target rounded-2xl bg-bg muted hover:text-danger" aria-label="Quitar de mi agenda">×</button></article></template></div></div></template></section></template></div>
+      <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><p class="text-4xl">🐾</p><h2 class="font-bold text-lg mt-3">Tu agenda está vacía</h2><p class="muted text-sm mt-2">Tocá el + en cualquier actividad para guardarla acá.</p><a href="/" @click.prevent="navigate('/')" class="inline-block mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Ver eventos</a></div>
+      <div x-show="events.length > 0" class="space-y-8"><template x-for="event in events" :key="event.id"><section><div class="flex items-center justify-between gap-3 mb-3"><h2 class="text-xl font-black" x-text="event.name"></h2><a :href="`/event/${event.id}`" @click.prevent="navigate(`/event/${event.id}`)" class="touch-target grid place-items-center muted hover:text-primary" aria-label="Abrir evento">↗</a></div><template x-for="day in event.days" :key="day.date"><div class="mb-5"><h3 class="text-xs uppercase tracking-[.15em] text-primary font-bold mb-2" x-text="formatDate(day.date)"></h3><div class="space-y-2"><template x-for="item in day.items" :key="item.id"><article class="surface rounded-2xl p-4 flex items-center gap-3" :class="hasConflict(item, day) ? 'border-warning/60' : 'border-primary/40'"><div class="w-14 shrink-0"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div><div class="min-w-0 flex-1"><h4 class="font-bold truncate" x-text="item.title"></h4><div class="flex flex-wrap gap-1.5 mt-2"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span></div><p x-show="hasConflict(item, day)" class="text-warning text-xs mt-2">⚠️ Se solapa con otra actividad</p></div><button @click="removeAttending(item)" class="touch-target rounded-2xl bg-bg muted hover:text-danger" aria-label="Quitar de mi agenda">×</button></article></template></div></div></template></section></template></div>
     </section>
   </main>
 
   <nav class="mobile-nav fixed z-40 bottom-0 left-0 right-0 safe-bottom bg-bg/95 backdrop-blur-lg border-t border-line px-3 pt-2" aria-label="Navegación móvil">
-    <a href="#/" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'list' ? 'text-primary' : 'muted'"><span class="text-lg">⌂</span><span>Eventos</span></a>
-    <a href="#/agenda" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'agenda' ? 'text-primary' : 'muted'"><span class="text-lg">●</span><span>Mi agenda</span></a>
+    <a href="/" @click.prevent="navigate('/')" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'list' ? 'text-primary' : 'muted'"><span class="text-lg">⌂</span><span>Eventos</span></a>
+    <a href="/agenda" @click.prevent="navigate('/agenda')" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'agenda' ? 'text-primary' : 'muted'"><span class="text-lg">●</span><span>Mi agenda</span></a>
   </nav>
 
   <!-- CREATE / EDIT EVENT -->

@@ -43,7 +43,7 @@ document.addEventListener('alpine:init', () => {
     },
 
     restoreRoute() {
-      return this.ui.route || '#/';
+      return this.ui.route || '/';
     },
 
     rememberRoute(route) {

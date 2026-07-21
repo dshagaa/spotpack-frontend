@@ -16,3 +16,4 @@ function createStorage() {
 
 globalThis.localStorage = createStorage();
 globalThis.sessionStorage = createStorage();
+globalThis.history = { pushState: vi.fn(), replaceState: vi.fn() };

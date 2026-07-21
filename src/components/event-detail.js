@@ -60,9 +60,9 @@ export default () => ({
   },
 
   async loadEvent({ force = false } = {}) {
-    const hash = location.hash;
-    if (!hash.startsWith('#/event/')) return;
-    const id = hash.replace('#/event/', '');
+    const path = location.pathname;
+    if (!path.startsWith('/event/')) return;
+    const id = path.replace('/event/', '');
     if (!id) return;
     this.loading = true;
     this.error = null;
@@ -147,7 +147,7 @@ export default () => ({
     try {
       await deleteEvent(this.event.id);
       this.showDeleteConfirm = false;
-      location.hash = '#/';
+      history.pushState(null, '', '/');
       this.appStore()?.refresh();
     } catch (e) {
       this.error = e.message;
