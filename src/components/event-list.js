@@ -7,6 +7,14 @@ export default () => ({
   error: null,
 
   async init() {
+    await this.fetchEvents();
+    // Watch store for refresh triggers (e.g., after event creation)
+    this.$watch?.('$store.app.refreshCounter', () => this.fetchEvents());
+  },
+
+  async fetchEvents() {
+    this.loading = true;
+    this.error = null;
     try {
       this.events = (await getEvents()).events || [];
     } catch (e) {

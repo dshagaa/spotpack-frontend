@@ -39,16 +39,18 @@ export default () => ({
     try {
       const data = await importSchedule(this.file, this.eventId);
       this.result = data;
-      setTimeout(() => {
-        this.open = false;
-        this.reset();
-        location.reload();
-      }, 1500);
     } catch (e) {
       this.error = e.message;
     } finally {
       this.loading = false;
     }
+  },
+
+  close() {
+    this.open = false;
+    this.reset();
+    // Refresh the event detail and list via store
+    if (typeof Alpine !== 'undefined') Alpine.store('app').refresh();
   },
 
   reset() {

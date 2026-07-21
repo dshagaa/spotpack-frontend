@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/src/style.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
   <script type="module">
+    import '/src/store.js';
     import apiKey from '/src/components/api-key.js';
     import eventList from '/src/components/event-list.js';
     import createEvent from '/src/components/create-event.js';
@@ -108,11 +109,37 @@
           <a href="#/" class="text-primary text-sm mb-4 inline-block">← Eventos</a>
           <h1 class="text-2xl font-bold text-white mt-2" x-text="event.name"></h1>
           <p class="text-sm text-gray-400 mt-1" x-show="event.location" x-text="event.location"></p>
-          <!-- Import button -->
-          <button @click="$dispatch('open-import-modal', event.id)"
-            class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            📸 Importar schedule
-          </button>
+          <!-- Action buttons -->
+          <div class="flex flex-wrap gap-2 mt-4">
+            <button @click="$dispatch('open-import-modal', event.id)"
+              class="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              📸 Importar schedule
+            </button>
+            <button @click="editEvent()"
+              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
+              ✏️ Editar
+            </button>
+            <button @click="showDeleteConfirm = true"
+              class="bg-danger/20 hover:bg-danger/30 text-danger px-4 py-2 rounded-lg text-sm font-medium">
+              🗑️ Eliminar
+            </button>
+          </div>
+          <!-- Delete confirmation -->
+          <div x-show="showDeleteConfirm"
+            class="mt-4 bg-surface border border-danger/50 rounded-lg p-4">
+            <p class="text-white text-sm">¿Estás seguro de eliminar este evento y todos sus items?</p>
+            <div class="flex gap-2 mt-3">
+              <button @click="confirmDelete()" :disabled="deleting"
+                class="bg-danger hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm">
+                <span x-show="!deleting">Sí, eliminar</span>
+                <span x-show="deleting">Eliminando...</span>
+              </button>
+              <button @click="cancelDelete()"
+                class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">
+                Cancelar
+              </button>
+            </div>
+          </div>
           <!-- Days -->
           <template x-for="day in days" :key="day.date">
             <div class="mt-6">
@@ -146,15 +173,17 @@
     </div>
   </div>
 
-  <!-- Create Event Modal -->
+  <!-- Create / Edit Event Modal -->
   <div x-data="createEvent"
-    @open-create-modal.window="open = true"
     @keydown.escape.window="open = false"
     x-show="open"
     x-transition
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
     <div class="bg-surface rounded-xl p-6 w-full max-w-md mx-4 border border-gray-700" @click.stop>
-      <h2 class="text-xl font-bold text-white mb-4">Nuevo evento</h2>
+      <h2 class="text-xl font-bold text-white mb-4">
+        <span x-show="!isEdit">Nuevo evento</span>
+        <span x-show="isEdit">Editar evento</span>
+      </h2>
       <form @submit.prevent="submit">
         <input x-model="name" placeholder="Nombre del evento *" required
           class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-3 text-white text-sm focus:border-primary outline-none" />
@@ -173,14 +202,18 @@
         <input x-model="location" placeholder="Lugar (opcional)"
           class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-4 text-white text-sm focus:border-primary outline-none" />
         <div x-show="error" class="text-danger text-sm mb-3" x-text="error"></div>
-        <div x-show="success" class="text-success text-sm mb-3">✅ Creado!</div>
+        <div x-show="success" class="text-success text-sm mb-3">
+          <span x-show="!isEdit">✅ Creado!</span>
+          <span x-show="isEdit">✅ Guardado!</span>
+        </div>
         <div class="flex gap-3 justify-end">
           <button type="button" @click="open = false; reset()"
             class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
           <button type="submit" :disabled="loading"
             class="bg-primary hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            <span x-show="!loading">Crear</span>
-            <span x-show="loading">Creando...</span>
+            <span x-show="!loading && !isEdit">Crear</span>
+            <span x-show="!loading && isEdit">Guardar</span>
+            <span x-show="loading">Guardando...</span>
           </button>
         </div>
       </form>
@@ -217,7 +250,7 @@
         <div class="text-center">
           <p class="text-success text-lg">✅ Importado!</p>
           <p class="text-white mt-2"><span x-text="result.count"></span> items añadidos</p>
-          <button @click="open = false; location.reload()"
+          <button @click="close()"
             class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
             Cerrar
           </button>

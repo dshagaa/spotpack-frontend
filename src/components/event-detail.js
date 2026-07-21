@@ -1,5 +1,5 @@
 // src/components/event-detail.js — Event view with items grouped by day
-import { getEvent } from '../api.js';
+import { getEvent, deleteEvent } from '../api.js';
 
 export default () => ({
   event: null,
@@ -7,10 +7,20 @@ export default () => ({
   days: [],
   loading: true,
   error: null,
+  showDeleteConfirm: false,
+  deleting: false,
 
   async init() {
+    await this.loadEvent();
+    // Watch store for refresh (e.g., after import or edit)
+    this.$watch?.('$store.app.refreshCounter', () => this.loadEvent());
+  },
+
+  async loadEvent() {
     const id = location.hash.replace('#/event/', '');
     if (!id) return;
+    this.loading = true;
+    this.error = null;
     try {
       const data = await getEvent(id);
       this.event = data.event;
@@ -27,6 +37,35 @@ export default () => ({
     } finally {
       this.loading = false;
     }
+  },
+
+  editEvent() {
+    this.$dispatch('open-edit-modal', {
+      id: this.event.id,
+      name: this.event.name,
+      start_date: this.event.start_date,
+      end_date: this.event.end_date,
+      location: this.event.location || '',
+    });
+  },
+
+  async confirmDelete() {
+    this.deleting = true;
+    try {
+      await deleteEvent(this.event.id);
+      this.showDeleteConfirm = false;
+      // Navigate back to list
+      location.hash = '#/';
+      if (typeof Alpine !== 'undefined') Alpine.store('app').refresh();
+    } catch (e) {
+      this.error = e.message;
+    } finally {
+      this.deleting = false;
+    }
+  },
+
+  cancelDelete() {
+    this.showDeleteConfirm = false;
   },
 
   formatTime(t) {
