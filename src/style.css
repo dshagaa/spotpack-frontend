@@ -1,10 +1,82 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #1A1025;
-  --color-surface: #2D1B3D;
-  --color-primary: #E87D3E;
-  --color-danger: #F44336;
-  --color-warning: #FFC107;
-  --color-success: #4CAF50;
+  --color-bg: #120d1b;
+  --color-surface: #1d1529;
+  --color-surface-raised: #251b34;
+  --color-primary: #f28a45;
+  --color-primary-soft: #4a2d25;
+  --color-accent: #ffc56b;
+  --color-danger: #ff5e62;
+  --color-warning: #f7bd4d;
+  --color-success: #61d39a;
+  --color-ink: #fff8e7;
+  --color-muted: #a89eb5;
+  --color-line: #362947;
+}
+
+:root {
+  color-scheme: dark;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #120d1b;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* { box-sizing: border-box; }
+html { background: var(--color-bg); }
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    radial-gradient(circle at 100% -5%, rgba(242, 138, 69, .12), transparent 28rem),
+    var(--color-bg);
+  color: var(--color-ink);
+}
+button, input, select, textarea { font: inherit; }
+button, a, input, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.app-shell { width: min(100%, 1120px); margin-inline: auto; padding-inline: 1rem; }
+.surface { background: color-mix(in srgb, var(--color-surface) 94%, transparent); border: 1px solid var(--color-line); }
+.surface-raised { background: var(--color-surface-raised); border: 1px solid var(--color-line); }
+.muted { color: var(--color-muted); }
+.touch-target { min-width: 44px; min-height: 44px; }
+
+@media (min-width: 768px) {
+  .app-shell { padding-inline: 2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface) 25%, var(--color-surface-raised) 50%, var(--color-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.content-auto { content-visibility: auto; contain-intrinsic-size: 1px 160px; }
+
+@media (max-width: 767px) {
+  .mobile-nav { display: flex; }
+  .desktop-nav { display: none; }
+  .main-content { padding-bottom: 5.5rem; }
+}
+@media (min-width: 768px) {
+  .mobile-nav { display: none; }
+  .desktop-nav { display: flex; }
 }

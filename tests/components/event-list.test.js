@@ -11,6 +11,7 @@ import { getEvents } from '../../src/api.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
 });
 
 describe('event-list component', () => {

@@ -1,5 +1,5 @@
-// src/components/my-agenda.js — "Mi Agenda" view with attending items
-import { getEvents, getEvent } from '../api.js';
+// src/components/my-agenda.js — personal agenda from local attending state
+import { getEvent, getEvents } from '../api.js';
 
 export default () => ({
   events: [],
@@ -16,30 +16,22 @@ export default () => ({
     this.error = null;
     try {
       const { events: allEvents } = await getEvents();
-      // Fetch each event's detail to get items
-      const enriched = await Promise.all(
-        allEvents.map(async (e) => {
-          try {
-            const data = await getEvent(e.id);
-            const attendingItems = (data.items || []).filter(
-              i => Alpine.store('app').isAttending(data.event.id, i.id)
-            );
-            if (attendingItems.length === 0) return null;
-            // Group attending items by day
-            const grouped = {};
-            for (const item of attendingItems) {
-              if (!grouped[item.day_date]) grouped[item.day_date] = [];
-              grouped[item.day_date].push(item);
-            }
-            return {
-              ...data.event,
-              days: Object.entries(grouped).map(([date, items]) => ({ date, items })),
-            };
-          } catch {
-            return null;
-          }
-        })
-      );
+      const enriched = await Promise.all(allEvents.map(async (event) => {
+        try {
+          const data = await getEvent(event.id);
+          const store = Alpine.store('app');
+          const attending = (data.items || []).filter((item) => store.isAttending(data.event.id, item.id));
+          if (!attending.length) return null;
+          const grouped = {};
+          attending.forEach((item) => {
+            if (!grouped[item.day_date]) grouped[item.day_date] = [];
+            grouped[item.day_date].push(item);
+          });
+          return { ...data.event, days: Object.entries(grouped).map(([date, items]) => ({ date, items })) };
+        } catch {
+          return null;
+        }
+      }));
       this.events = enriched.filter(Boolean);
     } catch (e) {
       this.error = e.message;
@@ -48,49 +40,27 @@ export default () => ({
     }
   },
 
-  /** Remove an item from attending */
   removeAttending(item) {
-    // We need the event id - extract from the parent context
-    // The item doesn't have event_id from the API response
-    // So we find the event that contains this item
-    for (const evt of this.events) {
-      for (const day of evt.days) {
-        const found = day.items.find(i => i.id === item.id);
-        if (found) {
-          Alpine.store('app').setAttending(evt.id, item.id, false);
-          // Re-fetch to update UI
-          this.fetchAll();
-          return;
-        }
+    for (const event of this.events) {
+      if (event.days.some((day) => day.items.some((candidate) => candidate.id === item.id))) {
+        Alpine.store('app').setAttending(event.id, item.id, false);
+        return;
       }
     }
   },
 
-  formatTime(t) {
-    return t ? t.slice(0, 5) : '';
+  hasConflict(item, day) {
+    return day.items.some((other) => other.id !== item.id && item.start_time < other.end_time && item.end_time > other.start_time);
   },
 
-  formatDate(d) {
-    return new Date(d + 'T00:00:00').toLocaleDateString('es-MX', {
-      weekday: 'long', month: 'long', day: 'numeric',
-    });
+  formatTime(value) { return value ? value.slice(0, 5) : '--:--'; },
+  formatDate(value) {
+    return value ? new Date(`${value}T00:00:00`).toLocaleDateString('es-MX', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Fecha pendiente';
   },
-
-  badgeClass(c) {
-    return {
-      '+18': 'bg-danger/20 text-danger',
-      '+16': 'bg-warning/20 text-warning',
-      '+21': 'bg-danger/20 text-danger',
-      general: 'bg-success/20 text-success',
-    }[c] || 'bg-gray-700 text-gray-300';
+  badgeClass(value) {
+    return { '+18': 'bg-danger/15 text-danger border-danger/30', '+21': 'bg-danger/15 text-danger border-danger/30', '+16': 'bg-warning/15 text-warning border-warning/30', general: 'bg-success/15 text-success border-success/30' }[value] || 'bg-gray-700 text-muted border-line';
   },
-
-  categoryLabel(c) {
-    const labels = {
-      panel: 'Panel', meetup: 'Meetup', workshop: 'Taller',
-      fursuit_games: 'Fursuit Games', dance: 'Baile',
-      ceremony: 'Ceremonia', other: 'Otro',
-    };
-    return labels[c] || c;
+  categoryLabel(value) {
+    return { panel: 'Panel', meetup: 'Meetup', workshop: 'Taller', fursuit_games: 'Fursuit games', dance: 'Baile', ceremony: 'Ceremonia', other: 'Otro' }[value] || value;
   },
 });

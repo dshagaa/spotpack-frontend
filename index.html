@@ -1,422 +1,163 @@
-<!DOCTYPE html>
-<html lang="es" class="bg-bg text-white">
+<!doctype html>
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SpotPack</title>
-  <link rel="stylesheet" href="/src/style.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js"></script>
-  <script type="module">
-    import '/src/store.js';
-    import apiKey from '/src/components/api-key.js';
-    import eventList from '/src/components/event-list.js';
-    import createEvent from '/src/components/create-event.js';
-    import eventDetail from '/src/components/event-detail.js';
-    import importModal from '/src/components/import-modal.js';
-    import myAgenda from '/src/components/my-agenda.js';
-    document.addEventListener('alpine:init', () => {
-      Alpine.data('apiKey', apiKey);
-      Alpine.data('eventList', eventList);
-      Alpine.data('createEvent', createEvent);
-      Alpine.data('eventDetail', eventDetail);
-      Alpine.data('importModal', importModal);
-      Alpine.data('myAgenda', myAgenda);
-    });
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#120d1b" />
+  <meta name="description" content="Tu agenda de convenciones, sin complicaciones." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <title>SpotPack · Tu agenda de convenciones</title>
+  <style>[x-cloak]{display:none!important}</style>
 </head>
 <body
   x-data="{
-    page: location.hash.startsWith('#/event/') ? 'detail'
-        : location.hash === '#/agenda' ? 'agenda'
-        : 'list',
+    page: location.hash.startsWith('#/event/') ? 'detail' : location.hash === '#/agenda' ? 'agenda' : 'list',
     toast: { show: false, message: '', type: '' },
     toastTimer: null,
-    showToast(msg, type='') {
-      this.toast = { show: true, message: msg, type };
+    setPage() {
+      this.page = location.hash.startsWith('#/event/') ? 'detail' : location.hash === '#/agenda' ? 'agenda' : 'list';
+      Alpine.store('app')?.rememberRoute(location.hash || '#/');
+    },
+    showToast(message, type = '') {
+      this.toast = { show: true, message, type };
       clearTimeout(this.toastTimer);
-      this.toastTimer = setTimeout(() => this.toast.show = false, 4000);
+      this.toastTimer = setTimeout(() => { this.toast.show = false; }, 4200);
     },
   }"
-  @hashchange.window="page = location.hash.startsWith('#/event/') ? 'detail' : (location.hash === '#/agenda' ? 'agenda' : 'list')"
+  @hashchange.window="setPage()"
   @show-toast.window="showToast($event.detail.message, $event.detail.type)"
-  x-init="$watch('page', (val, old) => { if (val !== old) Alpine.store('app').refresh(); })"
-  class="min-h-screen relative"
+  x-init="if (!location.hash || location.hash === '#/') { const saved = Alpine.store('app')?.restoreRoute(); if (saved && saved !== '#/') location.hash = saved; }"
+  class="min-h-screen"
 >
-  <!-- Toast -->
-  <div
-    x-show="toast.show"
-    x-transition
-    class="fixed bottom-6 right-6 z-[100] max-w-sm bg-surface border border-gray-600 rounded-lg px-4 py-3 shadow-xl"
-    :class="toast.type === 'warning' ? 'border-warning/50' : ''"
-  >
-    <p class="text-sm text-white" x-text="toast.message"></p>
+  <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:left-3 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
+
+  <div x-show="toast.show" x-cloak x-transition class="fixed z-[100] left-4 right-4 bottom-20 md:left-auto md:right-6 md:bottom-6 md:max-w-sm surface rounded-2xl px-4 py-3 shadow-2xl" :class="toast.type === 'warning' ? 'border-warning/50' : ''" role="status">
+    <p class="text-sm" x-text="toast.message"></p>
   </div>
 
-  <div class="container mx-auto px-4 py-8">
-    <!-- Header -->
-    <div class="flex items-center justify-between mb-8 flex-wrap gap-2">
-      <div class="flex items-center gap-4">
-        <h1 class="text-3xl font-bold text-primary">🐆 SpotPack</h1>
-        <nav class="flex gap-3 text-sm">
-          <a href="#/"
-            class="hover:text-primary transition-colors"
-            :class="page === 'list' ? 'text-primary font-medium' : 'text-gray-400'">
-            Eventos
-          </a>
-          <a href="#/agenda"
-            class="hover:text-primary transition-colors"
-            :class="page === 'agenda' ? 'text-primary font-medium' : 'text-gray-400'">
-            📋 Mi Agenda
-          </a>
-        </nav>
-      </div>
-      <!-- API Key -->
-      <div x-data="apiKey" class="flex items-center gap-2">
-        <template x-if="!saved">
-          <button @click="toggle"
-            class="bg-primary hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium">
-            ⚡ Conectar API
+  <header class="app-shell pt-5 md:pt-8">
+    <div class="flex items-center justify-between gap-3">
+      <a href="#/" class="flex items-center gap-3 min-h-11" aria-label="SpotPack, inicio">
+        <span class="grid place-items-center w-10 h-10 rounded-2xl bg-primary text-2xl shadow-lg shadow-primary/10">🐆</span>
+        <span>
+          <span class="block text-lg font-black tracking-tight">SpotPack</span>
+          <span class="hidden sm:block text-[11px] muted tracking-wide">TU AGENDA DE CONVENCIÓN</span>
+        </span>
+      </a>
+      <div class="flex items-center gap-2">
+        <span class="hidden sm:inline-flex items-center gap-1.5 text-xs muted" :class="$store.app?.online ? 'text-success' : 'text-warning'">
+          <span class="w-1.5 h-1.5 rounded-full bg-current"></span>
+          <span x-text="$store.app?.online ? 'En línea' : 'Sin conexión'"></span>
+        </span>
+        <div x-data="apiKey" class="relative">
+          <button @click="toggle" class="touch-target px-3 rounded-xl surface text-xs font-medium hover:border-primary transition-colors" :aria-label="saved ? 'Cambiar API key' : 'Conectar API'">
+            <span x-show="!saved">⚡ Conectar</span><span x-show="saved">⚡ API</span>
           </button>
-        </template>
-        <template x-if="saved && !showInput">
-          <div class="flex items-center gap-2">
-            <span class="text-success text-sm">● Conectado</span>
-            <button @click="toggle"
-              class="text-gray-400 hover:text-white text-xs underline">cambiar</button>
+          <div x-show="showInput" x-cloak x-transition class="absolute z-50 right-0 top-12 w-[min(18rem,calc(100vw-2rem))] surface-raised rounded-2xl p-3 shadow-2xl">
+            <p class="text-xs muted mb-2">Tu API key se guarda sólo en este dispositivo.</p>
+            <input x-model="key" type="password" placeholder="sk-sp-..." class="w-full bg-bg border border-line rounded-xl px-3 py-2 text-sm outline-none focus:border-primary" @keyup.enter="save()" />
+            <div class="flex justify-end gap-2 mt-2"><button @click="toggle" class="touch-target px-3 text-xs muted">Cancelar</button><button @click="save" class="touch-target px-3 rounded-xl bg-primary text-xs font-semibold">Guardar</button></div>
           </div>
-        </template>
-        <template x-if="showInput">
-          <div class="flex items-center gap-2">
-            <input x-model="key" type="password" placeholder="sk-sp-..."
-              class="bg-surface border border-gray-600 rounded px-2 py-1 text-sm w-48 focus:border-primary outline-none"
-              @keyup.enter="save()" />
-            <button @click="save"
-              class="bg-primary hover:bg-orange-600 text-white px-2 py-1 rounded text-sm">Guardar</button>
-            <button @click="toggle"
-              class="text-gray-400 hover:text-white text-sm">✕</button>
-          </div>
-        </template>
+        </div>
       </div>
     </div>
 
-    <!-- ========== EVENT LIST ========== -->
-    <div x-data="eventList" x-show="page === 'list'">
-      <!-- Actions -->
-      <div class="flex justify-end mb-4">
-        <button @click="$dispatch('open-create-modal')"
-          class="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-          ＋ Crear evento
-        </button>
+    <nav class="desktop-nav items-center gap-1 mt-8" aria-label="Principal">
+      <a href="#/" class="px-4 py-2 rounded-xl text-sm" :class="page === 'list' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Eventos</a>
+      <a href="#/agenda" class="px-4 py-2 rounded-xl text-sm" :class="page === 'agenda' ? 'bg-surface-raised text-ink' : 'muted hover:text-ink'">Mi agenda</a>
+    </nav>
+  </header>
+
+  <main id="main-content" class="app-shell main-content pt-8 md:pt-10">
+    <!-- EVENT LIST -->
+    <section x-data="eventList" x-show="page === 'list'" aria-labelledby="events-heading">
+      <div class="flex items-end justify-between gap-4 mb-6">
+        <div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold">Tu pack</p><h1 id="events-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1">Tus eventos</h1><p class="muted text-sm mt-2">Todo lo que no querés perderte.</p></div>
+        <button @click="$dispatch('open-create-modal')" class="touch-target shrink-0 px-4 rounded-2xl bg-primary text-sm font-bold shadow-lg shadow-primary/10 hover:bg-orange-500 transition-colors"><span class="text-lg leading-none">＋</span><span class="hidden sm:inline ml-1">Crear</span></button>
       </div>
-      <!-- Loading -->
-      <div x-show="loading" class="text-center text-gray-500 mt-20">
-        <p class="text-lg">Cargando eventos...</p>
+
+      <div class="flex items-center justify-between min-h-8 mb-4">
+        <p x-show="stale" x-cloak class="text-xs text-warning">Datos guardados · <span x-text="formatCachedAt()"></span></p>
+        <span x-show="!stale && cachedAt" x-cloak class="text-xs text-success">Actualizado</span>
+        <button @click="refresh" :disabled="loading" class="ml-auto touch-target px-3 rounded-xl surface text-xs muted hover:text-ink disabled:opacity-50">↻ Actualizar</button>
       </div>
-      <!-- Error -->
-      <div x-show="error" class="text-center text-danger mt-20">
-        <p class="text-lg" x-text="error"></p>
+
+      <div x-show="loading && events.length === 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="Cargando eventos">
+        <template x-for="i in 3" :key="i"><div class="surface rounded-3xl p-5 h-36 skeleton"></div></template>
       </div>
-      <!-- Event cards -->
-      <div x-show="!loading && events.length > 0" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <template x-for="e in events" :key="e.id">
-          <a :href="`#/event/${e.id}`"
-            class="block bg-surface rounded-lg p-5 border border-gray-700 hover:border-primary transition-colors">
-            <h2 class="text-lg font-semibold text-white" x-text="e.name"></h2>
-            <p class="text-sm text-gray-400 mt-1" x-text="dateRange(e)"></p>
-            <p class="text-sm text-gray-500 mt-1" x-show="e.location" x-text="e.location"></p>
-            <span class="inline-block mt-3 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded"
-              x-text="e.item_count + ' items'"></span>
+      <div x-show="error" x-cloak class="surface rounded-3xl p-6 border-danger/30"><p class="text-danger text-sm" x-text="error"></p><button @click="refresh" class="mt-4 px-4 py-2 rounded-xl bg-primary text-sm font-bold">Reintentar</button></div>
+      <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><div class="text-4xl">✦</div><h2 class="font-bold text-lg mt-3">Todavía no hay eventos</h2><p class="muted text-sm mt-2">Creá tu primer evento para empezar a armar tu agenda.</p><button @click="$dispatch('open-create-modal')" class="mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Crear evento</button></div>
+      <div x-show="events.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <template x-for="event in events" :key="event.id">
+          <a :href="`#/event/${event.id}`" class="surface rounded-3xl p-5 min-h-40 flex flex-col justify-between hover:border-primary/70 hover:-translate-y-0.5 transition-all content-auto">
+            <div class="flex items-start justify-between gap-3"><div><p class="text-lg font-bold leading-tight" x-text="event.name"></p><p class="muted text-sm mt-2" x-text="dateRange(event)"></p></div><span class="text-primary text-xl">↗</span></div>
+            <div class="flex items-center justify-between gap-3 mt-6"><span x-show="event.location" class="muted text-xs truncate" x-text="event.location"></span><span class="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold" x-text="`${event.item_count || 0} items`"></span></div>
           </a>
         </template>
       </div>
-      <!-- Empty state -->
-      <div x-show="!loading && !error && events.length === 0" class="text-center text-gray-500 mt-20">
-        <p class="text-lg">No hay eventos todavía</p>
-        <p class="text-sm mt-2">Creá uno para empezar</p>
-      </div>
-    </div>
+    </section>
 
-    <!-- ========== EVENT DETAIL ========== -->
-    <div x-data="eventDetail" x-show="page === 'detail'">
-      <div x-show="loading" class="text-center text-gray-500 mt-20">
-        <p class="text-lg">Cargando evento...</p>
-      </div>
-      <div x-show="error" class="text-center text-danger mt-20">
-        <p class="text-lg" x-text="error"></p>
-        <a href="#/" class="text-primary text-sm mt-4 inline-block">← Volver</a>
-      </div>
+    <!-- EVENT DETAIL -->
+    <section x-data="eventDetail" x-show="page === 'detail'" aria-labelledby="detail-heading">
+      <div x-show="loading && !event" class="space-y-4"><div class="skeleton rounded-3xl h-32"></div><div class="skeleton rounded-3xl h-20"></div></div>
+      <div x-show="error && !event" x-cloak class="surface rounded-3xl p-6"><p class="text-danger text-sm" x-text="error"></p><a href="#/" class="inline-block mt-4 text-primary text-sm">← Volver a eventos</a></div>
       <template x-if="event">
         <div>
-          <a href="#/" class="text-primary text-sm mb-4 inline-block">← Eventos</a>
-          <h1 class="text-2xl font-bold text-white mt-2" x-text="event.name"></h1>
-          <p class="text-sm text-gray-400 mt-1" x-show="event.location" x-text="event.location"></p>
-
-          <!-- Action buttons -->
-          <div class="flex flex-wrap gap-2 mt-4">
-            <button @click="$dispatch('open-import-modal', event.id)"
-              class="bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              📸 Importar schedule
-            </button>
-            <button @click="editEvent()"
-              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              ✏️ Editar
-            </button>
-            <button @click="showDeleteConfirm = true"
-              class="bg-danger/20 hover:bg-danger/30 text-danger px-4 py-2 rounded-lg text-sm font-medium">
-              🗑️ Eliminar
-            </button>
+          <a href="#/" class="inline-flex touch-target items-center text-sm muted hover:text-primary">← Eventos</a>
+          <div class="flex items-start justify-between gap-4 mt-4"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold" x-text="event.location || 'Schedule'" ></p><h1 id="detail-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1" x-text="event.name"></h1><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div><button @click="editEvent" class="touch-target shrink-0 surface rounded-xl px-3 text-sm" aria-label="Editar evento">✎</button></div>
+          <div class="flex gap-2 mt-6 overflow-x-auto pb-1" role="tablist" aria-label="Días del evento">
+            <template x-for="day in days" :key="day.date"><button @click="selectDay(day.date)" role="tab" :aria-selected="activeDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="activeDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'"><span class="block text-xs uppercase opacity-80" x-text="formatShortDate(day.date).split(' ')[0]"></span><span class="block text-sm font-bold mt-0.5" x-text="formatShortDate(day.date).replace(/^\S+ /, '')"></span></button></template>
           </div>
-
-          <!-- Delete confirmation -->
-          <div x-show="showDeleteConfirm"
-            class="mt-4 bg-surface border border-danger/50 rounded-lg p-4">
-            <p class="text-white text-sm">¿Estás seguro de eliminar este evento y todos sus items?</p>
-            <div class="flex gap-2 mt-3">
-              <button @click="confirmDelete()" :disabled="deleting"
-                class="bg-danger hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm">
-                <span x-show="!deleting">Sí, eliminar</span>
-                <span x-show="deleting">Eliminando...</span>
-              </button>
-              <button @click="cancelDelete()"
-                class="bg-gray-600 hover:bg-gray-500 text-white px-3 py-1 rounded text-sm">
-                Cancelar
-              </button>
-            </div>
+          <div class="surface rounded-3xl p-3 mt-5 md:p-4">
+            <div class="flex gap-2"><label class="relative flex-1"><span class="sr-only">Buscar actividades</span><span class="absolute left-3 top-1/2 -translate-y-1/2 muted">⌕</span><input x-model="searchQuery" class="w-full bg-bg border border-line rounded-2xl pl-9 pr-3 py-3 text-sm outline-none focus:border-primary" placeholder="Buscar actividad..." /></label><label class="touch-target grid place-items-center px-3 rounded-2xl border cursor-pointer" :class="showAdult ? 'border-danger/50 bg-danger/10 text-danger' : 'border-line muted'" title="Mostrar contenido adulto"><input type="checkbox" x-model="showAdult" class="sr-only" /><span>18+</span></label></div>
+            <div class="flex gap-2 overflow-x-auto mt-3 pb-1"><button @click="filterCategory = 'all'" class="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold" :class="filterCategory === 'all' ? 'bg-primary text-white' : 'bg-bg muted'">Todas</button><template x-for="cat in ['panel','meetup','workshop','fursuit_games','dance','ceremony','other']" :key="cat"><button @click="filterCategory = cat" class="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold" :class="filterCategory === cat ? 'bg-primary text-white' : 'bg-bg muted'" x-text="categoryLabel(cat)"></button></template></div>
           </div>
-
-          <!-- Filters -->
-          <div class="mt-6 space-y-3">
-            <!-- Search -->
-            <input x-model="searchQuery" type="text" placeholder="🔍 Buscar por título o descripción..."
-              class="w-full bg-surface border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:border-primary outline-none" />
-
-            <!-- Category chips -->
-            <div class="flex flex-wrap gap-2">
-              <button @click="filterCategory = 'all'"
-                class="text-xs px-3 py-1 rounded-full transition-colors"
-                :class="filterCategory === 'all' ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
-                Todas
-              </button>
-              <template x-for="cat in ['panel','meetup','workshop','fursuit_games','dance','ceremony','other']" :key="cat">
-                <button @click="filterCategory = cat"
-                  class="text-xs px-3 py-1 rounded-full transition-colors"
-                  :class="filterCategory === cat ? 'bg-primary text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'">
-                  <span x-text="categoryLabel(cat)"></span>
-                </button>
-              </template>
-            </div>
-
-            <!-- +18 toggle -->
-            <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
-              <input type="checkbox" x-model="showAdult"
-                class="accent-primary w-4 h-4 rounded" />
-              Mostrar contenido +18
-            </label>
-          </div>
-
-          <!-- Days -->
-          <template x-for="day in days" :key="day.date">
-            <div class="mt-6">
-              <h2 class="text-lg font-semibold text-primary sticky top-0 bg-bg py-2 z-10"
-                x-text="formatDate(day.date)"></h2>
-
-              <!-- Hidden count -->
-              <p x-show="hiddenAdultCount(day.items) > 0" class="text-xs text-gray-500 mb-2">
-                <span x-text="hiddenAdultCount(day.items)"></span> eventos ocultos (contenido +18)
-              </p>
-
-              <p x-show="filteredItems(day.items).length === 0" class="text-sm text-gray-500 py-4 text-center">
-                No hay actividades que coincidan
-              </p>
-
-              <div class="space-y-2 mt-2">
-                <template x-for="item in filteredItems(day.items)" :key="item.id">
-                  <div class="bg-surface rounded-lg p-4 border border-gray-700"
-                    :class="isAttending(item) ? 'border-primary/40' : ''">
-                    <div class="flex items-start justify-between gap-3">
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2">
-                          <p class="text-white font-medium truncate" x-text="item.title"></p>
-                          <!-- Attending indicator -->
-                          <span x-show="isAttending(item)" class="text-primary flex-shrink-0" title="Voy">🐾</span>
-                        </div>
-                        <p class="text-xs text-gray-400 mt-1" x-show="item.description" x-text="item.description"></p>
-                        <div class="flex flex-wrap gap-2 mt-2">
-                          <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
-                            x-text="formatTime(item.start_time) + ' – ' + formatTime(item.end_time)"></span>
-                          <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
-                            x-text="item.room" x-show="item.room"></span>
-                          <span class="text-xs px-2 py-0.5 rounded" :class="badgeClass(item.classification)"
-                            x-text="item.classification"></span>
-                        </div>
-                      </div>
-                      <div class="flex flex-col items-center gap-1 flex-shrink-0">
-                        <span class="text-sm" x-text="categoryIcon(item.category)"></span>
-                        <!-- Attending toggle -->
-                        <button @click="toggleAttending(item)"
-                          class="text-lg transition-colors"
-                          :class="isAttending(item) ? 'text-primary' : 'text-gray-600 hover:text-primary/60'"
-                          :title="isAttending(item) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'">
-                          <span x-text="isAttending(item) ? '🐾' : '○'"></span>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </div>
-            </div>
-          </template>
-        </div>
-      </template>
-    </div>
-
-    <!-- ========== MI AGENDA ========== -->
-    <div x-data="myAgenda" x-show="page === 'agenda'">
-      <h2 class="text-xl font-bold text-white mb-4">📋 Mi Agenda</h2>
-
-      <div x-show="loading" class="text-center text-gray-500 mt-20">
-        <p class="text-lg">Cargando tu agenda...</p>
-      </div>
-      <div x-show="error" class="text-center text-danger mt-20">
-        <p class="text-lg" x-text="error"></p>
-      </div>
-
-      <!-- Empty state -->
-      <div x-show="!loading && !error && events.length === 0"
-        class="text-center text-gray-500 mt-20">
-        <p class="text-lg">🐾 Nada por aquí...</p>
-        <p class="text-sm mt-2">Marcá eventos como "voy" desde el schedule para verlos acá</p>
-        <a href="#/" class="text-primary text-sm mt-4 inline-block hover:underline">← Ir a eventos</a>
-      </div>
-
-      <!-- Events with attending items -->
-      <div x-show="!loading && events.length > 0" class="space-y-8">
-        <template x-for="evt in events" :key="evt.id">
-          <div>
-            <h3 class="text-lg font-semibold text-primary" x-text="evt.name"></h3>
-            <p class="text-xs text-gray-400 mb-3" x-text="evt.location" x-show="evt.location"></p>
-            <template x-for="day in evt.days" :key="day.date">
-              <div class="mb-4">
-                <h4 class="text-sm font-medium text-gray-300 mb-2 sticky top-0 bg-bg py-1"
-                  x-text="formatDate(day.date)"></h4>
-                <div class="space-y-2">
-                  <template x-for="item in day.items" :key="item.id">
-                    <div class="bg-surface rounded-lg p-4 border border-gray-700 border-primary/40">
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="flex-1 min-w-0">
-                          <p class="text-white font-medium" x-text="item.title"></p>
-                          <div class="flex flex-wrap gap-2 mt-2">
-                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
-                              x-text="formatTime(item.start_time) + ' – ' + formatTime(item.end_time)"></span>
-                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
-                              x-text="item.room" x-show="item.room"></span>
-                            <span class="text-xs px-2 py-0.5 rounded" :class="badgeClass(item.classification)"
-                              x-text="item.classification"></span>
-                            <span class="text-xs bg-gray-700 text-gray-300 px-2 py-0.5 rounded"
-                              x-text="categoryLabel(item.category)"></span>
-                          </div>
-                        </div>
-                        <button @click="removeAttending(item)"
-                          class="text-gray-500 hover:text-danger transition-colors flex-shrink-0 text-sm"
-                          title="Quitar de mi agenda">
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  </template>
-                </div>
-              </div>
+          <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
+          <div x-show="days.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
+          <div x-show="days.length > 0 && currentDayItems().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">No encontramos actividades</p><p class="muted text-sm mt-1">Probá otro filtro o habilitá el contenido +18.</p></div>
+          <div class="relative space-y-2">
+            <template x-for="item in currentDayItems()" :key="item.id">
+              <article class="surface rounded-2xl p-4 flex gap-3 content-auto" :class="isAttending(item) ? 'border-primary/70 bg-primary/[.04]' : ''">
+                <div class="w-14 shrink-0 text-center pt-0.5"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div>
+                <div class="w-px bg-line"></div>
+                <div class="min-w-0 flex-1"><div class="flex items-start gap-2"><h2 class="font-bold leading-snug" x-text="item.title"></h2><span x-show="isAttending(item)" class="text-primary shrink-0" title="En mi agenda">●</span></div><p x-show="item.description" x-text="item.description" class="muted text-xs mt-1 line-clamp-2"></p><div class="flex flex-wrap gap-1.5 mt-3"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span><span class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="`${categoryIcon(item.category)} ${categoryLabel(item.category)}`"></span></div></div>
+                <button @click="toggleAttending(item)" class="touch-target self-center rounded-2xl shrink-0 text-xl" :class="isAttending(item) ? 'bg-primary/15 text-primary' : 'bg-bg muted hover:text-primary'" :aria-label="isAttending(item) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'" :aria-pressed="isAttending(item)"><span x-text="isAttending(item) ? '●' : '+'"></span></button>
+              </article>
             </template>
           </div>
-        </template>
-      </div>
-    </div>
-  </div>
-
-  <!-- ========== CREATE / EDIT EVENT MODAL ========== -->
-  <div x-data="createEvent"
-    @keydown.escape.window="open = false"
-    x-show="open"
-    x-transition
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-    <div class="bg-surface rounded-xl p-6 w-full max-w-md mx-4 border border-gray-700" @click.stop>
-      <h2 class="text-xl font-bold text-white mb-4">
-        <span x-show="!isEdit">Nuevo evento</span>
-        <span x-show="isEdit">Editar evento</span>
-      </h2>
-      <form @submit.prevent="submit">
-        <input x-model="name" placeholder="Nombre del evento *" required
-          class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-3 text-white text-sm focus:border-primary outline-none" />
-        <div class="grid grid-cols-2 gap-3 mb-3">
-          <div>
-            <label class="text-xs text-gray-400">Fecha inicio *</label>
-            <input x-model="startDate" type="date" required
-              class="w-full bg-bg border border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-primary outline-none mt-1" />
-          </div>
-          <div>
-            <label class="text-xs text-gray-400">Fecha fin *</label>
-            <input x-model="endDate" type="date" required
-              class="w-full bg-bg border border-gray-600 rounded px-3 py-2 text-white text-sm focus:border-primary outline-none mt-1" />
-          </div>
-        </div>
-        <input x-model="location" placeholder="Lugar (opcional)"
-          class="w-full bg-bg border border-gray-600 rounded px-3 py-2 mb-4 text-white text-sm focus:border-primary outline-none" />
-        <div x-show="error" class="text-danger text-sm mb-3" x-text="error"></div>
-        <div x-show="success" class="text-success text-sm mb-3">
-          <span x-show="!isEdit">✅ Creado!</span>
-          <span x-show="isEdit">✅ Guardado!</span>
-        </div>
-        <div class="flex gap-3 justify-end">
-          <button type="button" @click="open = false; reset()"
-            class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
-          <button type="submit" :disabled="loading"
-            class="bg-primary hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            <span x-show="!loading && !isEdit">Crear</span>
-            <span x-show="!loading && isEdit">Guardar</span>
-            <span x-show="loading">Guardando...</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ========== IMPORT SCHEDULE MODAL ========== -->
-  <div x-data="importModal"
-    @keydown.escape.window="open = false"
-    x-show="open"
-    x-transition
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-    <div class="bg-surface rounded-xl p-6 w-full max-w-md mx-4 border border-gray-700" @click.stop>
-      <h2 class="text-xl font-bold text-white mb-4">📸 Importar schedule</h2>
-      <template x-if="!result">
-        <div>
-          <input type="file" accept="image/png,image/jpeg,image/webp"
-            @change="handleFile($el)"
-            class="w-full text-sm text-gray-400 file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-white file:text-sm file:font-medium" />
-          <img :src="preview" x-show="preview" class="mt-4 rounded-lg max-h-48 object-contain mx-auto" />
-          <div x-show="error" class="text-danger text-sm mt-3" x-text="error"></div>
-          <div class="flex gap-3 justify-end mt-4">
-            <button @click="open = false; reset()"
-              class="px-4 py-2 text-sm text-gray-400 hover:text-white">Cancelar</button>
-            <button @click="submit" :disabled="!file || loading"
-              class="bg-primary hover:bg-orange-600 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium">
-              <span x-show="!loading">🤖 Enviar a MiMo</span>
-              <span x-show="loading">Procesando...</span>
-            </button>
-          </div>
+          <div class="flex flex-wrap gap-2 mt-8"><button @click="$dispatch('open-import-modal', event.id)" class="touch-target px-4 rounded-2xl bg-primary text-sm font-bold">＋ Importar schedule</button><button @click="showDeleteConfirm = true" class="touch-target px-4 rounded-2xl surface text-sm text-danger">Eliminar evento</button></div>
+          <div x-show="showDeleteConfirm" x-cloak class="surface rounded-2xl border-danger/40 p-4 mt-3"><p class="text-sm">¿Eliminar este evento y todas sus actividades?</p><div class="flex gap-2 mt-3"><button @click="confirmDelete" :disabled="deleting" class="touch-target px-4 rounded-xl bg-danger text-sm font-bold" x-text="deleting ? 'Eliminando…' : 'Sí, eliminar'"></button><button @click="cancelDelete" class="touch-target px-4 rounded-xl bg-bg muted text-sm">Cancelar</button></div></div>
         </div>
       </template>
-      <template x-if="result">
-        <div class="text-center">
-          <p class="text-success text-lg">✅ Importado!</p>
-          <p class="text-white mt-2"><span x-text="result.count"></span> items añadidos</p>
-          <button @click="close()"
-            class="mt-4 bg-primary hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium">
-            Cerrar
-          </button>
-        </div>
-      </template>
-    </div>
+    </section>
+
+    <!-- MY AGENDA -->
+    <section x-data="myAgenda" x-show="page === 'agenda'" aria-labelledby="agenda-heading">
+      <div class="flex items-end justify-between gap-3 mb-6"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold">Tu selección</p><h1 id="agenda-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1">Mi agenda</h1><p class="muted text-sm mt-2">Tus próximos lugares para estar.</p></div><span class="text-3xl">🐾</span></div>
+      <div x-show="loading" class="space-y-3"><div class="skeleton rounded-3xl h-24"></div><div class="skeleton rounded-3xl h-24"></div></div>
+      <div x-show="error" x-cloak class="surface rounded-3xl border-danger/30 p-6"><p class="text-danger text-sm" x-text="error"></p></div>
+      <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><p class="text-4xl">🐾</p><h2 class="font-bold text-lg mt-3">Tu agenda está vacía</h2><p class="muted text-sm mt-2">Tocá el + en cualquier actividad para guardarla acá.</p><a href="#/" class="inline-block mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Ver eventos</a></div>
+      <div x-show="events.length > 0" class="space-y-8"><template x-for="event in events" :key="event.id"><section><div class="flex items-center justify-between gap-3 mb-3"><h2 class="text-xl font-black" x-text="event.name"></h2><a :href="`#/event/${event.id}`" class="touch-target grid place-items-center muted hover:text-primary" aria-label="Abrir evento">↗</a></div><template x-for="day in event.days" :key="day.date"><div class="mb-5"><h3 class="text-xs uppercase tracking-[.15em] text-primary font-bold mb-2" x-text="formatDate(day.date)"></h3><div class="space-y-2"><template x-for="item in day.items" :key="item.id"><article class="surface rounded-2xl p-4 flex items-center gap-3" :class="hasConflict(item, day) ? 'border-warning/60' : 'border-primary/40'"><div class="w-14 shrink-0"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div><div class="min-w-0 flex-1"><h4 class="font-bold truncate" x-text="item.title"></h4><div class="flex flex-wrap gap-1.5 mt-2"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span></div><p x-show="hasConflict(item, day)" class="text-warning text-xs mt-2">⚠️ Se solapa con otra actividad</p></div><button @click="removeAttending(item)" class="touch-target rounded-2xl bg-bg muted hover:text-danger" aria-label="Quitar de mi agenda">×</button></article></template></div></div></template></section></template></div>
+    </section>
+  </main>
+
+  <nav class="mobile-nav fixed z-40 bottom-0 left-0 right-0 safe-bottom bg-bg/95 backdrop-blur-lg border-t border-line px-3 pt-2" aria-label="Navegación móvil">
+    <a href="#/" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'list' ? 'text-primary' : 'muted'"><span class="text-lg">⌂</span><span>Eventos</span></a>
+    <a href="#/agenda" class="flex-1 min-h-12 grid place-items-center rounded-2xl text-xs gap-0.5" :class="page === 'agenda' ? 'text-primary' : 'muted'"><span class="text-lg">●</span><span>Mi agenda</span></a>
+  </nav>
+
+  <!-- CREATE / EDIT EVENT -->
+  <div x-data="createEvent" x-show="open" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="open = false">
+    <div class="surface-raised w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-5 md:p-6 max-h-[92vh] overflow-y-auto" @click.stop><div class="flex items-center justify-between mb-5"><h2 class="text-xl font-black"><span x-show="!isEdit">Nuevo evento</span><span x-show="isEdit">Editar evento</span></h2><button @click="open = false; reset()" class="touch-target rounded-xl bg-bg muted">×</button></div><form @submit.prevent="submit"><input x-model="name" placeholder="Nombre del evento *" required class="w-full bg-bg border border-line rounded-2xl px-3 py-3 text-sm outline-none focus:border-primary" /><div class="grid grid-cols-2 gap-2 mt-3"><label class="text-xs muted">Inicio<input x-model="startDate" type="date" required class="mt-1 w-full bg-bg border border-line rounded-2xl px-3 py-3 text-sm outline-none focus:border-primary" /></label><label class="text-xs muted">Fin<input x-model="endDate" type="date" required class="mt-1 w-full bg-bg border border-line rounded-2xl px-3 py-3 text-sm outline-none focus:border-primary" /></label></div><input x-model="location" placeholder="Lugar (opcional)" class="mt-3 w-full bg-bg border border-line rounded-2xl px-3 py-3 text-sm outline-none focus:border-primary" /><p x-show="error" x-text="error" class="text-danger text-sm mt-3"></p><p x-show="success" class="text-success text-sm mt-3">✓ Guardado</p><div class="flex gap-2 justify-end mt-5"><button type="button" @click="open = false; reset()" class="touch-target px-4 muted text-sm">Cancelar</button><button type="submit" :disabled="loading" class="touch-target px-5 rounded-2xl bg-primary text-sm font-bold" x-text="loading ? 'Guardando…' : (isEdit ? 'Guardar' : 'Crear')"></button></div></form></div>
   </div>
+
+  <!-- IMPORT -->
+  <div x-data="importModal" x-show="open" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="open = false">
+    <div class="surface-raised w-full md:max-w-md rounded-t-3xl md:rounded-3xl p-5 md:p-6" @click.stop><div class="flex items-center justify-between mb-5"><h2 class="text-xl font-black">Importar schedule</h2><button @click="open = false; reset()" class="touch-target rounded-xl bg-bg muted">×</button></div><template x-if="!result"><div><label class="block border border-dashed border-primary/50 rounded-3xl p-6 text-center cursor-pointer hover:bg-primary/5"><span class="text-3xl">▧</span><span class="block text-sm font-semibold mt-2">Elegí una imagen</span><span class="block muted text-xs mt-1">PNG, JPG o WebP</span><input type="file" accept="image/png,image/jpeg,image/webp" @change="handleFile($el)" class="sr-only" /></label><img :src="preview" x-show="preview" class="mt-4 rounded-2xl max-h-48 w-full object-contain" alt="Vista previa del schedule" /><p x-show="error" x-text="error" class="text-danger text-sm mt-3"></p><div class="flex gap-2 justify-end mt-5"><button @click="open = false; reset()" class="touch-target px-4 muted text-sm">Cancelar</button><button @click="submit" :disabled="!file || loading" class="touch-target px-5 rounded-2xl bg-primary text-sm font-bold" x-text="loading ? 'Procesando…' : 'Enviar a MiMo'"></button></div></div></template><template x-if="result"><div class="text-center py-5"><p class="text-4xl">✓</p><p class="font-bold text-lg mt-3">Importado</p><p class="muted text-sm mt-1"><span x-text="result.count"></span> actividades agregadas</p><button @click="close" class="mt-5 touch-target px-5 rounded-2xl bg-primary text-sm font-bold">Listo</button></div></template></div>
+  </div>
+
+  <noscript><div class="fixed inset-0 z-[200] grid place-items-center bg-bg p-6 text-center">SpotPack necesita JavaScript para funcionar.</div></noscript>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -11,13 +11,18 @@
 
 ```
 ┌──────────────────────────────────────────────┐
-│  Vite SPA (Alpine.js + Tailwind CSS)         │
+│  Vite SPA (bundled Alpine.js + Tailwind CSS) │
 │                                              │
 │  index.html   ← Alpine mount + layout        │
 │  src/                                        │
-│    main.js    ← Alpine init, router           │
+│    main.js    ← Alpine init + service worker  │
 │    api.js     ← fetch wrapper for backend     │
-│    store.js   ← Alpine store (global state)   │
+│    store.js   ← Alpine store + UI preferences │
+│    lib/                                       │
+│      storage.js     ← safe local/session storage |
+│      cache.js       ← bounded API snapshots   │
+│    public/                                    │
+│      sw.js, manifest, offline fallback        │
 |    components/                               |
 |      api-key.js       ← API key input        |
 |      event-list.js    ← Home (event cards)    |
@@ -38,7 +43,7 @@
 | Layer | Technology | Notes |
 |-------|-----------|-------|
 | Build | Vite 8 | HMR, Tree-shaking, ES Modules |
-| Framework | Alpine.js 3 | CDN, no build step at runtime |
+| Framework | Alpine.js 3 | Bundled locally; no runtime CDN |
 | CSS | Tailwind CSS v4 | Custom jaguar palette |
 | Testing | Vitest + jsdom | Unit tests |
 | E2E | Playwright | Smoke tests |
@@ -84,7 +89,20 @@ The global store in `src/store.js` provides:
 - `toggleAttending(eventId, itemId)` / `setAttending(eventId, itemId, value)` — modify attending
 - `getAllAttending()` / `isAttending(eventId, itemId)` — query helpers
 
-**Storage key:** `localStorage.spotpack_attending` = JSON object `{ "eventId:itemId": true/false }`
+**Storage layers:**
+- `localStorage.spotpack:v1:attending` — attending map
+- `localStorage.spotpack:v1:snapshot:*` — bounded API snapshots with TTL
+- `sessionStorage.spotpack:v1:ui` — route, selected day, search, category, adult toggle
+- `localStorage.spotpack_api_url` / `spotpack_api_key` — existing API configuration
+
+`src/lib/storage.js` parses values defensively and rejects oversized JSON. `src/lib/cache.js` never stores API keys.
+
+## Offline and Service Worker
+
+- `public/sw.js` caches same-origin static assets and `offline.html` only.
+- Authenticated API responses are **not** intercepted by the service worker.
+- API read snapshots use localStorage through `src/lib/cache.js`; mutations invalidate snapshots.
+- The service worker is registered only in production builds.
 
 ---
 
@@ -95,7 +113,7 @@ Hash-based SPA routing in `index.html` (x-data on `<body>`):
 - `#/event/{id}` → event detail
 - `#/agenda` → Mi Agenda (attending items)
 
-The router is driven by Alpine x-data and @hashchange.window on the body element.
+The router is driven by Alpine x-data and `@hashchange.window`; the last route and filters are restored from sessionStorage.
 
 ---
 

@@ -11,6 +11,7 @@ import eventDetail from '../../src/components/event-detail.js';
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   delete globalThis.Alpine;
   Object.defineProperty(window, 'location', {
     value: { hash: '#/event/test-id-123' },
