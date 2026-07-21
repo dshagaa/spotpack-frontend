@@ -60,7 +60,9 @@ export default () => ({
   },
 
   async loadEvent({ force = false } = {}) {
-    const id = location.hash.replace('#/event/', '');
+    const hash = location.hash;
+    if (!hash.startsWith('#/event/')) return;
+    const id = hash.replace('#/event/', '');
     if (!id) return;
     this.loading = true;
     this.error = null;
