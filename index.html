@@ -32,7 +32,7 @@
   }"
   @popstate.window="setPage(); Alpine.store('app')?.refresh()"
   @show-toast.window="showToast($event.detail.message, $event.detail.type)"
-  x-init="setPage(); if (location.pathname === '/' || location.pathname === '') { const saved = Alpine.store('app')?.restoreRoute(); if (saved && saved !== '/') history.pushState(null, '', saved); setPage(); }"
+  x-init="setPage()"
   class="min-h-screen"
 >
   <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:z-[100] focus:top-3 focus:left-3 focus:bg-primary focus:text-white focus:px-4 focus:py-2 focus:rounded-lg">Saltar al contenido</a>
