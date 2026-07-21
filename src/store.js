@@ -25,6 +25,7 @@ function saveAttending(value) {
 document.addEventListener('alpine:init', () => {
   Alpine.store('app', {
     refreshCounter: 0,
+    view: 'list',
     online: navigator.onLine,
     ui: loadUI(),
 
@@ -35,6 +36,10 @@ document.addEventListener('alpine:init', () => {
 
     refresh() {
       this.refreshCounter += 1;
+    },
+
+    setView(view) {
+      this.view = view;
     },
 
     rememberUI(patch) {

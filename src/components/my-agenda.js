@@ -8,6 +8,7 @@ export default () => ({
 
   async init() {
     if (location.pathname === '/agenda') await this.fetchAll();
+    this.$watch?.('$store.app.view', (view) => { if (view === 'agenda') this.fetchAll(); });
     this.$watch?.('$store.app.refreshCounter', () => this.fetchAll());
   },
 
