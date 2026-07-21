@@ -70,7 +70,7 @@ export default () => ({
         this.open = false;
         this.reset();
         // Trigger refresh via store
-        if (typeof Alpine !== 'undefined') Alpine.store('app').refresh();
+        if (typeof window.Alpine !== 'undefined') window.Alpine.store('app').refresh();
       }, 1000);
     } catch (e) {
       this.error = e.message;

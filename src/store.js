@@ -1,8 +1,9 @@
 // src/store.js — shared UI preferences and local attending state
+import Alpine from 'alpinejs';
 import { KEYS, readLocal, readSession, writeLocal, writeSession } from './lib/storage.js';
 
 const DEFAULT_UI = {
-  route: '#/',
+  route: '',
   dayByEvent: {},
   search: '',
   category: 'all',

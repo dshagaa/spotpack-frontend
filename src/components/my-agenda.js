@@ -19,7 +19,7 @@ export default () => ({
       const enriched = await Promise.all(allEvents.map(async (event) => {
         try {
           const data = await getEvent(event.id);
-          const store = Alpine.store('app');
+          const store = window.Alpine?.store?.('app');
           const attending = (data.items || []).filter((item) => store.isAttending(data.event.id, item.id));
           if (!attending.length) return null;
           const grouped = {};
@@ -43,7 +43,7 @@ export default () => ({
   removeAttending(item) {
     for (const event of this.events) {
       if (event.days.some((day) => day.items.some((candidate) => candidate.id === item.id))) {
-        Alpine.store('app').setAttending(event.id, item.id, false);
+        window.Alpine?.store?.('app')?.setAttending(event.id, item.id, false);
         return;
       }
     }

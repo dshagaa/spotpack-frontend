@@ -18,6 +18,8 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('myAgenda', myAgenda);
 });
 
+// Expose globally before start() so template expressions (x-init, etc.) can find it.
+window.Alpine = Alpine;
 Alpine.start();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
