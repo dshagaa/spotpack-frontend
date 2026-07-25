@@ -3,6 +3,9 @@ import { clearAllSnapshots, clearSnapshot, getSnapshot, setSnapshot } from './li
 import { KEYS, readLocalString } from './lib/storage.js';
 
 const ENV_KEY = typeof import.meta !== 'undefined' ? import.meta.env.VITE_SPOTPACK_API_KEY : '';
+const SUPABASE_PUB_KEY = typeof import.meta !== 'undefined'
+  ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  : '';
 
 const BASE = () => readLocalString(KEYS.apiUrl, '') ||
   'http://127.0.0.1:54321/functions/v1';
@@ -11,11 +14,18 @@ function getApiKey() {
   return readLocalString(KEYS.apiKey, '') || ENV_KEY;
 }
 
+function getSupabaseKey() {
+  return SUPABASE_PUB_KEY;
+}
+
 function headers() {
-  return {
+  const h = {
     'x-api-key': getApiKey(),
     'Content-Type': 'application/json',
   };
+  const sbKey = getSupabaseKey();
+  if (sbKey) h['apikey'] = sbKey;
+  return h;
 }
 
 async function request(path, options = {}) {
@@ -108,7 +118,7 @@ export async function importSchedule(imageFile, eventId) {
   fd.append('event_id', eventId);
   const res = await fetch(`${BASE()}/import-schedule`, {
     method: 'POST',
-    headers: { 'x-api-key': getApiKey() },
+    headers: { 'x-api-key': getApiKey(), 'apikey': getSupabaseKey() },
     body: fd,
   });
   if (!res.ok) {
