@@ -128,6 +128,14 @@
           </div>
           <div x-show="viewMode === 'day'">
             <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
+
+            <!-- Room filter (day view only) -->
+            <div x-show="availableRooms().length > 0" class="flex gap-2 overflow-x-auto pb-1 mb-4" x-cloak>
+              <button @click="filterRoom = 'all'" class="shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold" :class="filterRoom === 'all' ? 'bg-primary text-white' : 'bg-bg muted hover:text-ink'">Todas las salas</button>
+              <template x-for="room in availableRooms()" :key="room">
+                <button @click="filterRoom = room" class="shrink-0 px-2.5 py-1.5 rounded-xl text-xs font-semibold" :class="filterRoom === room ? 'bg-primary text-white' : 'bg-bg muted hover:text-ink'" x-text="room"></button>
+              </template>
+            </div>
             <div x-show="days.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
             <div x-show="days.length > 0 && currentDayItems().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">No encontramos actividades</p><p class="muted text-sm mt-1">Probá otro filtro o habilitá el contenido +18.</p></div>
             <div class="relative space-y-2">
