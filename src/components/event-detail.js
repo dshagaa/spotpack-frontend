@@ -22,6 +22,7 @@ export default () => ({
   filterRoom: 'all',
   viewMode: 'day', // 'day' | 'schedule'
   sg: null, // schedule grid data
+  detailItem: null, // item showing in detail dialog
 
   async init() {
     const ui = readSession(KEYS.ui, {});
@@ -214,6 +215,10 @@ export default () => ({
   },
 
   // ── Schedule grid view ──
+
+  showDetail(item) { this.detailItem = item; },
+
+  closeDetail() { this.detailItem = null; },
 
   scheduleGrid() {
     const items = this.currentDayItems();
