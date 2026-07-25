@@ -216,10 +216,12 @@
 
         <div x-show="!loading && !error && events.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <template x-for="event in events" :key="event.id">
-            <button @click="selectEvent(event)" class="surface rounded-3xl p-5 min-h-36 flex flex-col justify-between text-left w-full hover:border-primary/70 hover:-translate-y-0.5 transition-all">
-              <div><p class="text-lg font-bold leading-tight" x-text="event.name"></p><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div>
-              <div class="flex items-center justify-between gap-3 mt-4"><span x-show="event.location" class="muted text-xs truncate" x-text="event.location"></span><span class="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold" x-text="`${event.attendingCount} actividad${event.attendingCount !== 1 ? 'es' : ''}`"></span></div>
-            </button>
+            <div class="surface rounded-3xl p-5 min-h-36 flex flex-col justify-between hover:border-primary/70 hover:-translate-y-0.5 transition-all">
+              <button @click="selectEvent(event)" class="text-left w-full">
+                <div><p class="text-lg font-bold leading-tight" x-text="event.name"></p><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div>
+              </button>
+              <div class="flex items-center justify-between gap-3 mt-4"><span x-show="event.location" class="muted text-xs truncate" x-text="event.location"></span><div class="ml-auto flex items-center gap-2"><button @click="askCleanEvent(event)" class="touch-target text-danger/50 hover:text-danger transition-colors text-sm" aria-label="Limpiar selecciones de este evento">🗑️</button><span class="shrink-0 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold" x-text="`${event.attendingCount} actividad${event.attendingCount !== 1 ? 'es' : ''}`"></span></div></div>
+            </div>
           </template>
         </div>
       </div>
@@ -295,6 +297,8 @@
           <div x-show="!focusedSg || focusedSg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">Sin actividades este día</p></div>
         </div>
 
+        <div class="flex justify-center mt-8 mb-4"><button @click="askCleanFocused()" class="touch-target px-5 py-2.5 rounded-2xl bg-bg border border-danger/30 text-danger text-sm font-semibold hover:bg-danger/10 transition-colors">🗑️ Limpiar todas las selecciones</button></div>
+
         <!-- Detail dialog -->
         <div x-show="detailItem" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="closeDetail()">
           <div class="surface-raised w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-5 md:p-6 max-h-[85vh] overflow-y-auto" @click.stop>
@@ -324,6 +328,22 @@
             <div class="flex gap-3 mt-6">
               <button @click="cancelRemove()" class="flex-1 touch-target py-3 rounded-2xl surface text-sm font-semibold">Cancelar</button>
               <button @click="removeAttending(confirmItem)" class="flex-1 touch-target py-3 rounded-2xl bg-danger text-sm font-bold text-white">Quitar</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clean-all confirmation dialog -->
+        <div x-show="confirmClean" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="cancelClean()">
+          <div class="surface-raised w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-5 md:p-6" @click.stop>
+            <div class="text-center">
+              <p class="text-3xl">🗑️</p>
+              <h3 class="font-bold text-lg mt-3">¿Limpiar todas las selecciones?</h3>
+              <p class="muted text-sm mt-2">Vas a quitar todas las actividades guardadas de <strong x-text="confirmClean?.name"></strong>.</p>
+              <p class="muted text-xs mt-1">Podés volver a seleccionarlas después desde el evento.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+              <button @click="cancelClean()" class="flex-1 touch-target py-3 rounded-2xl surface text-sm font-semibold">Cancelar</button>
+              <button @click="confirmCleanAll()" class="flex-1 touch-target py-3 rounded-2xl bg-danger text-sm font-bold text-white">Limpiar todo</button>
             </div>
           </div>
         </div>
