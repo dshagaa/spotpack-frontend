@@ -20,6 +20,7 @@ export default () => ({
   filterCategory: 'all',
   showAdult: false,
   viewMode: 'day', // 'day' | 'schedule'
+  sg: null, // schedule grid data
 
   async init() {
     const ui = readSession(KEYS.ui, {});
@@ -32,6 +33,12 @@ export default () => ({
     this.$watch?.('searchQuery', (value) => this.rememberFilter({ search: value }));
     this.$watch?.('filterCategory', (value) => this.rememberFilter({ category: value }));
     this.$watch?.('showAdult', (value) => this.rememberFilter({ showAdult: value }));
+    // Recompute schedule grid when dependencies change
+    this.$watch?.('activeDay', () => { this.sg = this.scheduleGrid(); });
+    this.$watch?.('filterCategory', () => { if (this.viewMode === 'schedule') this.sg = this.scheduleGrid(); });
+    this.$watch?.('searchQuery', () => { if (this.viewMode === 'schedule') this.sg = this.scheduleGrid(); });
+    this.$watch?.('showAdult', () => { if (this.viewMode === 'schedule') this.sg = this.scheduleGrid(); });
+    this.$watch?.('viewMode', (mode) => { if (mode === 'schedule' && !this.sg) this.sg = this.scheduleGrid(); });
   },
 
   appStore() {
@@ -59,6 +66,7 @@ export default () => ({
       ? storedDay : this.days[0]?.date || null;
     this.stale = !!cache?.stale;
     this.cachedAt = cache?.cachedAt || null;
+    this.sg = this.scheduleGrid();
   },
 
   async loadEvent({ force = false } = {}) {
