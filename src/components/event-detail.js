@@ -19,6 +19,7 @@ export default () => ({
   searchQuery: '',
   filterCategory: 'all',
   showAdult: false,
+  filterRoom: 'all',
   viewMode: 'day', // 'day' | 'schedule'
   sg: null, // schedule grid data
 
@@ -27,12 +28,14 @@ export default () => ({
     this.searchQuery = ui?.search || '';
     this.filterCategory = ui?.category || 'all';
     this.showAdult = !!ui?.showAdult;
+    this.filterRoom = ui?.room || 'all';
     if (location.pathname.startsWith('/event/')) await this.loadEvent();
     this.$watch?.('$store.app.view', (view) => { if (view === 'detail') this.loadEvent(); });
     this.$watch?.('$store.app.refreshCounter', () => this.loadEvent());
     this.$watch?.('searchQuery', (value) => this.rememberFilter({ search: value }));
     this.$watch?.('filterCategory', (value) => this.rememberFilter({ category: value }));
     this.$watch?.('showAdult', (value) => this.rememberFilter({ showAdult: value }));
+    this.$watch?.('filterRoom', (value) => this.rememberFilter({ room: value }));
     // Recompute schedule grid when dependencies change
     this.$watch?.('activeDay', () => { this.sg = this.scheduleGrid(); });
     this.$watch?.('filterCategory', () => { if (this.viewMode === 'schedule') this.sg = this.scheduleGrid(); });
@@ -136,8 +139,15 @@ export default () => ({
       if (query && !`${item.title || ''} ${item.description || ''}`.toLowerCase().includes(query)) return false;
       if (this.filterCategory !== 'all' && item.category !== this.filterCategory) return false;
       if (!this.showAdult && ADULT.has(item.classification)) return false;
+      if (this.filterRoom !== 'all' && item.room !== this.filterRoom) return false;
       return true;
     });
+  },
+
+  availableRooms() {
+    const day = this.days.find((d) => d.date === this.activeDay);
+    if (!day) return [];
+    return [...new Set(day.items.map((i) => i.room).filter(Boolean))].sort();
   },
 
   hiddenAdultCount(items) {
