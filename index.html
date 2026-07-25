@@ -171,15 +171,9 @@
                       <template x-for="room in sg.rooms" :key="room">
                         <td class="align-top surface rounded-lg p-1.5 min-h-[48px]">
                           <template x-for="item in (sg.grid[slot]?.[room] || [])" :key="item.id">
-                            <div class="rounded-xl px-2 py-1.5 mb-1 text-xs cursor-pointer border-l-2 transition-colors last:mb-0" :class="isAttending(item) ? 'bg-primary/10 border-primary text-ink' : 'bg-bg border-transparent hover:border-primary/30'" @click="toggleAttending(item)">
-                              <div class="flex items-start justify-between gap-1">
-                                <span class="font-semibold leading-tight" x-text="item.title"></span>
-                                <span x-show="isAttending(item)" class="text-primary shrink-0 text-[10px]">●</span>
-                              </div>
-                              <div class="flex items-center gap-1.5 mt-1">
-                                <span class="text-[10px] muted" x-text="`${formatTime(item.start_time)}-${formatTime(item.end_time)}`"></span>
-                                <span class="px-1 rounded border text-[10px]" :class="badgeClass(item.classification)" x-text="item.classification"></span>
-                              </div>
+                            <div class="rounded-xl px-2 py-1.5 mb-1 text-xs cursor-pointer border-l-2 transition-colors last:mb-0" :class="isAttending(item) ? 'bg-primary/10 border-primary' : 'bg-bg border-transparent hover:border-primary/30'" @click="showDetail(item)">
+                              <div class="font-semibold leading-tight truncate" x-text="item.title"></div>
+                              <div x-show="item.room" class="text-[10px] muted truncate mt-0.5" x-text="item.room"></div>
                             </div>
                           </template>
                         </td>
@@ -194,93 +188,129 @@
           <div x-show="showDeleteConfirm" x-cloak class="surface rounded-2xl border-danger/40 p-4 mt-3"><p class="text-sm">¿Eliminar este evento y todas sus actividades?</p><div class="flex gap-2 mt-3"><button @click="confirmDelete" :disabled="deleting" class="touch-target px-4 rounded-xl bg-danger text-sm font-bold" x-text="deleting ? 'Eliminando…' : 'Sí, eliminar'"></button><button @click="cancelDelete" class="touch-target px-4 rounded-xl bg-bg muted text-sm">Cancelar</button></div></div>
         </div>
       </template>
+
+      <!-- Detail dialog (schedule grid) -->
+      <div x-show="detailItem" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="closeDetail()">
+        <div class="surface-raised w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-5 md:p-6 max-h-[85vh] overflow-y-auto" @click.stop>
+          <div class="flex items-start justify-between gap-3 mb-4">
+            <div class="min-w-0 flex-1"><h2 class="text-lg font-black leading-tight" x-text="detailItem?.title"></h2><p class="muted text-sm mt-1" x-text="detailItem?.description || 'Sin descripción'"></p></div>
+            <button @click="closeDetail()" class="touch-target shrink-0 rounded-xl bg-bg muted hover:text-ink text-lg leading-none px-2">×</button>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-5">
+            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs"><span class="text-primary font-bold" x-text="formatTime(detailItem?.start_time)"></span>–<span class="muted" x-text="formatTime(detailItem?.end_time)"></span></span>
+            <span x-show="detailItem?.room" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs muted"><span x-text="detailItem?.room"></span></span>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px]" :class="badgeClass(detailItem?.classification)" x-text="detailItem?.classification"></span>
+            <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs muted" x-text="`${categoryIcon(detailItem?.category)} ${categoryLabel(detailItem?.category)}`"></span>
+          </div>
+          <button @click="toggleAttending(detailItem); closeDetail()" class="w-full touch-target py-3 rounded-2xl font-bold text-sm" :class="isAttending(detailItem) ? 'bg-bg text-danger border border-danger/30' : 'bg-primary text-white'" x-text="isAttending(detailItem) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'"></button>
+        </div>
+      </div>
     </section>
-
-    <!-- MY AGENDA -->
     <section x-data="myAgenda" x-show="page === 'agenda'" aria-labelledby="agenda-heading">
-      <div class="flex items-end justify-between gap-3 mb-6"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold">Tu selección</p><h1 id="agenda-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1">Mi agenda</h1><p class="muted text-sm mt-2">Tus próximos lugares para estar.</p></div><span class="text-3xl">🐾</span></div>
+      <div x-show="subPage === 'list'">
+        <div class="flex items-end justify-between gap-3 mb-6"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold">Tu selección</p><h1 id="agenda-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1">Mi agenda</h1><p class="muted text-sm mt-2">Elegí un evento para ver tus actividades guardadas.</p></div><span class="text-3xl">🐾</span></div>
 
-      <!-- View toggle -->
-      <div class="flex gap-1 bg-surface rounded-2xl p-1 w-fit mb-6" role="tablist" aria-label="Vista">
-        <button @click="viewMode = 'day'" role="tab" :aria-selected="viewMode === 'day'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="viewMode === 'day' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📋 Día</button>
-        <button @click="viewMode = 'schedule'" role="tab" :aria-selected="viewMode === 'schedule'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="viewMode === 'schedule' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📊 Horario</button>
+        <div x-show="loading" class="space-y-3"><div class="skeleton rounded-3xl h-32"></div><div class="skeleton rounded-3xl h-32"></div></div>
+        <div x-show="error" x-cloak class="surface rounded-3xl border-danger/30 p-6"><p class="text-danger text-sm" x-text="error"></p></div>
+        <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><p class="text-4xl">🐾</p><h2 class="font-bold text-lg mt-3">Tu agenda está vacía</h2><p class="muted text-sm mt-2">Tocá el + en cualquier actividad para guardarla acá.</p><a href="/" @click.prevent="navigate('/')" class="inline-block mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Ver eventos</a></div>
+
+        <div x-show="!loading && !error && events.length > 0" class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <template x-for="event in events" :key="event.id">
+            <button @click="selectEvent(event)" class="surface rounded-3xl p-5 min-h-36 flex flex-col justify-between text-left w-full hover:border-primary/70 hover:-translate-y-0.5 transition-all">
+              <div><p class="text-lg font-bold leading-tight" x-text="event.name"></p><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div>
+              <div class="flex items-center justify-between gap-3 mt-4"><span x-show="event.location" class="muted text-xs truncate" x-text="event.location"></span><span class="ml-auto shrink-0 px-2.5 py-1 rounded-lg bg-primary/10 text-primary text-xs font-semibold" x-text="`${event.attendingCount} actividad${event.attendingCount !== 1 ? 'es' : ''}`"></span></div>
+            </button>
+          </template>
+        </div>
       </div>
 
-      <div x-show="loading" class="space-y-3"><div class="skeleton rounded-3xl h-24"></div><div class="skeleton rounded-3xl h-24"></div></div>
-      <div x-show="error" x-cloak class="surface rounded-3xl border-danger/30 p-6"><p class="text-danger text-sm" x-text="error"></p></div>
-      <div x-show="!loading && !error && events.length === 0" x-cloak class="surface rounded-3xl p-8 text-center"><p class="text-4xl">🐾</p><h2 class="font-bold text-lg mt-3">Tu agenda está vacía</h2><p class="muted text-sm mt-2">Tocá el + en cualquier actividad para guardarla acá.</p><a href="/" @click.prevent="navigate('/')" class="inline-block mt-5 px-5 py-3 rounded-2xl bg-primary text-sm font-bold">Ver eventos</a></div>
+      <!-- ── Event detail ── -->
+      <div x-show="subPage === 'detail'" x-cloak>
+        <button @click="backToEvents()" class="inline-flex touch-target items-center text-sm muted hover:text-primary">← Todas tus agendas</button>
 
-      <!-- DAY VIEW -->
-      <div x-show="!loading && !error && events.length > 0 && viewMode === 'day'" class="space-y-8">
-        <template x-for="event in events" :key="event.id">
-          <section><div class="flex items-center justify-between gap-3 mb-3"><h2 class="text-xl font-black" x-text="event.name"></h2><a :href="`/event/${event.id}`" @click.prevent="navigate(`/event/${event.id}`)" class="touch-target grid place-items-center muted hover:text-primary" aria-label="Abrir evento">↗</a></div>
-            <template x-for="day in event.days" :key="day.date">
-              <div class="mb-5"><h3 class="text-xs uppercase tracking-[.15em] text-primary font-bold mb-2" x-text="formatDate(day.date)"></h3>
-                <div class="space-y-2">
-                  <template x-for="item in day.items" :key="item.id">
-                    <article class="surface rounded-2xl p-4 flex items-center gap-3" :class="hasConflict(item, day) ? 'border-warning/60' : 'border-primary/40'">
-                      <div class="w-14 shrink-0"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div>
-                      <div class="min-w-0 flex-1"><h4 class="font-bold truncate" x-text="item.title"></h4><div class="flex flex-wrap gap-1.5 mt-2"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span></div><p x-show="hasConflict(item, day)" class="text-warning text-xs mt-2">⚠️ Se solapa con otra actividad</p></div>
-                      <button @click="removeAttending(item)" class="touch-target rounded-2xl bg-bg muted hover:text-danger" aria-label="Quitar de mi agenda">×</button>
-                    </article>
-                  </template>
-                </div>
-              </div>
-            </template>
-          </section>
-        </template>
-      </div>
+        <div class="flex items-start justify-between gap-4 mt-4 mb-6"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold" x-text="focusedEvent?.location || 'Schedule'"></p><h2 class="text-3xl md:text-4xl font-black tracking-tight mt-1" x-text="focusedEvent?.name"></h2><p class="muted text-sm mt-2" x-text="`${focusedEvent?.start_date || ''} → ${focusedEvent?.end_date || ''}`"></p></div><a :href="`/event/${focusedEvent?.id}`" @click.prevent="navigate(`/event/${focusedEvent?.id}`)" class="touch-target shrink-0 surface rounded-xl px-3 py-3 text-sm muted hover:text-primary">Ver evento completo ↗</a></div>
 
-      <!-- SCHEDULE VIEW -->
-      <div x-show="!loading && !error && events.length > 0 && viewMode === 'schedule'" x-cloak>
         <!-- Day selector -->
-        <div x-show="agendaDays.length > 0" class="flex gap-2 overflow-x-auto pb-1 mb-4" role="tablist" aria-label="Día">
-          <template x-for="day in agendaDays" :key="day.date">
-            <button @click="selectDay(day.date)" role="tab" :aria-selected="activeDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="activeDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'">
+        <div x-show="focusedDays().length > 1" class="flex gap-2 overflow-x-auto pb-1 mb-4" role="tablist" aria-label="Días">
+          <template x-for="day in focusedDays()" :key="day.date">
+            <button @click="focusedSelectDay(day.date)" role="tab" :aria-selected="focusedActiveDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="focusedActiveDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'">
               <span class="block text-xs uppercase opacity-80" x-text="formatDate(day.date).split(' ')[0]"></span>
-              <span class="block text-sm font-bold mt-0.5" x-text="`${formatDate(day.date).replace(/^\S+ /, '')} (${day.items.length})`"></span>
+              <span class="block text-sm font-bold mt-0.5" x-text="formatDate(day.date).replace(/^\S+ /, '')"></span>
             </button>
           </template>
         </div>
 
-        <!-- Schedule grid -->
-        <div x-show="sg && sg.slots.length > 0" class="overflow-x-auto -mx-4 md:-mx-0">
-          <table class="w-full min-w-[500px] text-sm border-separate" style="border-spacing:3px">
-            <thead>
-              <tr>
-                <th class="sticky left-0 z-10 bg-bg text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 min-w-[60px]">Hora</th>
-                <template x-for="room in sg.rooms" :key="room">
-                  <th class="bg-surface text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 rounded-lg min-w-[150px]" x-text="room"></th>
-                </template>
-              </tr>
-            </thead>
-            <tbody>
-              <template x-for="slot in sg.slots" :key="slot">
+        <!-- View toggle -->
+        <div class="flex gap-1 bg-surface rounded-2xl p-1 w-fit mb-4" role="tablist" aria-label="Vista">
+          <button @click="focusedViewMode = 'day'" role="tab" :aria-selected="focusedViewMode === 'day'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="focusedViewMode === 'day' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📋 Día</button>
+          <button @click="focusedViewMode = 'schedule'; if(!focusedSg) focusedSg = computeFocusedGrid()" role="tab" :aria-selected="focusedViewMode === 'schedule'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="focusedViewMode === 'schedule' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📊 Horario</button>
+        </div>
+
+        <!-- ── Day view (attending items list) ── -->
+        <div x-show="focusedViewMode === 'day'">
+          <div x-show="focusedDays().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Sin actividades guardadas</p></div>
+          <div x-show="focusedDays().length > 0 && focusedDayItems().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">No hay actividades este día</p></div>
+          <div x-show="focusedDayItems().length > 0" class="space-y-2">
+            <template x-for="item in focusedDayItems()" :key="item.id">
+              <article class="surface rounded-2xl p-4 flex items-center gap-3" :class="hasConflict(item) ? 'border-warning/60' : 'border-primary/40'">
+                <div class="w-14 shrink-0"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div>
+                <div class="min-w-0 flex-1"><h4 class="font-bold truncate" x-text="item.title"></h4><div class="flex flex-wrap gap-1.5 mt-2"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span></div><p x-show="hasConflict(item)" class="text-warning text-xs mt-2">⚠️ Se solapa con otra actividad</p></div>
+                <button @click="askRemove(item)" class="touch-target rounded-2xl bg-bg text-danger/70 hover:text-danger transition-colors" aria-label="Quitar de mi agenda">🗑️</button>
+              </article>
+            </template>
+          </div>
+        </div>
+
+        <!-- ── Schedule grid view ── -->
+        <div x-show="focusedViewMode === 'schedule'" x-cloak>
+          <div x-show="focusedSg && focusedSg.slots.length > 0" class="overflow-x-auto -mx-4 md:-mx-0">
+            <table class="w-full min-w-[500px] text-sm border-separate" style="border-spacing:3px">
+              <thead>
                 <tr>
-                  <td class="sticky left-0 z-10 bg-bg text-xs font-bold text-primary align-top px-2 py-1.5 whitespace-nowrap"><span x-text="slot"></span></td>
-                  <template x-for="room in sg.rooms" :key="room">
-                    <td class="align-top surface rounded-lg p-1.5 min-h-[48px]">
-                      <template x-for="item in (sg.grid[slot]?.[room] || [])" :key="item.id">
-                        <div class="rounded-xl px-2 py-1.5 mb-1 text-xs border-l-2 transition-colors last:mb-0" :class="item._eventId ? 'bg-primary/10 border-primary text-ink' : 'bg-bg border-transparent'">
-                          <div class="flex items-start justify-between gap-1">
-                            <span class="font-semibold leading-tight" x-text="item.title"></span>
-                            <button @click="askRemove(item)" class="shrink-0 text-danger/70 hover:text-danger transition-colors p-0.5 -mr-0.5 -mt-0.5" aria-label="Quitar de mi agenda">🗑️</button>
-                          </div>
-                          <div class="flex items-center gap-1.5 mt-1">
-                            <span class="text-[10px] muted" x-text="`${formatTime(item.start_time)}-${formatTime(item.end_time)}`"></span>
-                            <span class="px-1 rounded border text-[10px]" :class="badgeClass(item.classification)" x-text="item.classification"></span>
-                          </div>
-                          <div class="text-[10px] muted mt-0.5 truncate" x-text="item._eventName"></div>
-                        </div>
-                      </template>
-                    </td>
+                  <th class="sticky left-0 z-10 bg-bg text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 min-w-[60px]">Hora</th>
+                  <template x-for="room in focusedSg.rooms" :key="room">
+                    <th class="bg-surface text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 rounded-lg min-w-[150px]" x-text="room"></th>
                   </template>
                 </tr>
-              </template>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <template x-for="slot in focusedSg.slots" :key="slot">
+                  <tr>
+                    <td class="sticky left-0 z-10 bg-bg text-xs font-bold text-primary align-top px-2 py-1.5 whitespace-nowrap"><span x-text="slot"></span></td>
+                    <template x-for="room in focusedSg.rooms" :key="room">
+                      <td class="align-top surface rounded-lg p-1.5 min-h-[48px]">
+                        <template x-for="item in (focusedSg.grid[slot]?.[room] || [])" :key="item.id">
+                          <div class="rounded-xl px-2 py-1.5 mb-1 text-xs cursor-pointer border-l-2 transition-colors last:mb-0 bg-primary/10 border-primary" @click="showDetail(item)">
+                            <div class="font-semibold leading-tight truncate" x-text="item.title"></div>
+                            <div class="text-[10px] muted truncate mt-0.5" x-text="focusedEvent?.name"></div>
+                          </div>
+                        </template>
+                      </td>
+                    </template>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div x-show="!focusedSg || focusedSg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">Sin actividades este día</p></div>
         </div>
-        <div x-show="sg && sg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">Sin actividades este día</p></div>
+
+        <!-- Detail dialog -->
+        <div x-show="detailItem" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="closeDetail()">
+          <div class="surface-raised w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-5 md:p-6 max-h-[85vh] overflow-y-auto" @click.stop>
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div class="min-w-0 flex-1"><h2 class="text-lg font-black leading-tight" x-text="detailItem?.title"></h2><p class="muted text-sm mt-1" x-text="detailItem?.description || 'Sin descripción'"></p></div>
+              <button @click="closeDetail()" class="touch-target shrink-0 rounded-xl bg-bg muted hover:text-ink text-lg leading-none px-2">×</button>
+            </div>
+            <div class="flex flex-wrap gap-2 mb-5">
+              <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs"><span class="text-primary font-bold" x-text="formatTime(detailItem?.start_time)"></span>–<span class="muted" x-text="formatTime(detailItem?.end_time)"></span></span>
+              <span x-show="detailItem?.room" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs muted"><span x-text="detailItem?.room"></span></span>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-lg border text-[11px]" :class="badgeClass(detailItem?.classification)" x-text="detailItem?.classification"></span>
+              <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-bg text-xs muted" x-text="`${categoryIcon(detailItem?.category)} ${categoryLabel(detailItem?.category)}`"></span>
+            </div>
+            <button @click="askRemove(detailItem); closeDetail()" class="w-full touch-target py-3 rounded-2xl bg-danger text-sm font-bold text-white">🗑️ Quitar de mi agenda</button>
+          </div>
+        </div>
 
         <!-- Remove confirmation dialog -->
         <div x-show="confirmItem" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="cancelRemove()">
