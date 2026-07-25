@@ -114,24 +114,73 @@
           <a href="/" @click.prevent="navigate('/')" class="inline-flex touch-target items-center text-sm muted hover:text-primary">← Eventos</a>
           <div class="flex items-start justify-between gap-4 mt-4"><div><p class="text-xs uppercase tracking-[.2em] text-primary font-bold" x-text="event.location || 'Schedule'" ></p><h1 id="detail-heading" class="text-3xl md:text-4xl font-black tracking-tight mt-1" x-text="event.name"></h1><p class="muted text-sm mt-2" x-text="`${event.start_date || ''} → ${event.end_date || ''}`"></p></div><button @click="editEvent" class="touch-target shrink-0 surface rounded-xl px-3 text-sm" aria-label="Editar evento">✎</button></div>
           <div class="flex gap-2 mt-6 overflow-x-auto pb-1" role="tablist" aria-label="Días del evento">
-            <template x-for="day in days" :key="day.date"><button @click="selectDay(day.date)" role="tab" :aria-selected="activeDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="activeDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'"><span class="block text-xs uppercase opacity-80" x-text="formatShortDate(day.date).split(' ')[0]"></span><span class="block text-sm font-bold mt-0.5" x-text="formatShortDate(day.date).replace(/^\S+ /, '')"></span></button></template>
+            <template x-for="day in days" :key="day.date"><button @click="selectDay(day.date)" role="tab" :aria-selected="activeDay === day.date" class="shrink-0 min-h-12 px-4 rounded-2xl border text-left transition-colors" :class="activeDay === day.date ? 'bg-primary text-white border-primary' : 'surface muted hover:text-ink'"><span class="block text-xs uppercase opacity-80" x-text="formatShortDate(day.date).split(' ')[0]"></span><span class="block text-sm font-bold mt-0.5" x-text="formatShortDate(day.date).replace(/^\\S+ /, '')"></span></button></template>
+          </div>
+
+          <!-- View toggle: Day / Schedule -->
+          <div class="flex gap-1 mt-4 bg-surface rounded-2xl p-1 w-fit" role="tablist" aria-label="Vista">
+            <button @click="viewMode = 'day'" role="tab" :aria-selected="viewMode === 'day'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="viewMode === 'day' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📋 Día</button>
+            <button @click="viewMode = 'schedule'" role="tab" :aria-selected="viewMode === 'schedule'" class="touch-target px-4 py-2 rounded-xl text-sm font-semibold transition-colors" :class="viewMode === 'schedule' ? 'bg-primary text-white shadow-sm' : 'muted hover:text-ink'">📊 Horario</button>
           </div>
           <div class="surface rounded-3xl p-3 mt-5 md:p-4">
             <div class="flex gap-2"><label class="relative flex-1"><span class="sr-only">Buscar actividades</span><span class="absolute left-3 top-1/2 -translate-y-1/2 muted">⌕</span><input x-model="searchQuery" class="w-full bg-bg border border-line rounded-2xl pl-9 pr-3 py-3 text-sm outline-none focus:border-primary" placeholder="Buscar actividad..." /></label><label class="touch-target grid place-items-center px-3 rounded-2xl border cursor-pointer" :class="showAdult ? 'border-danger/50 bg-danger/10 text-danger' : 'border-line muted'" title="Mostrar contenido adulto"><input type="checkbox" x-model="showAdult" class="sr-only" /><span>18+</span></label></div>
             <div class="flex gap-2 overflow-x-auto mt-3 pb-1"><button @click="filterCategory = 'all'" class="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold" :class="filterCategory === 'all' ? 'bg-primary text-white' : 'bg-bg muted'">Todas</button><template x-for="cat in ['panel','meetup','workshop','fursuit_games','dance','ceremony','other']" :key="cat"><button @click="filterCategory = cat" class="shrink-0 px-3 py-2 rounded-xl text-xs font-semibold" :class="filterCategory === cat ? 'bg-primary text-white' : 'bg-bg muted'" x-text="categoryLabel(cat)"></button></template></div>
           </div>
-          <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
-          <div x-show="days.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
-          <div x-show="days.length > 0 && currentDayItems().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">No encontramos actividades</p><p class="muted text-sm mt-1">Probá otro filtro o habilitá el contenido +18.</p></div>
-          <div class="relative space-y-2">
-            <template x-for="item in currentDayItems()" :key="item.id">
-              <article class="surface rounded-2xl p-4 flex gap-3 content-auto" :class="isAttending(item) ? 'border-primary/70 bg-primary/[.04]' : ''">
-                <div class="w-14 shrink-0 text-center pt-0.5"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div>
-                <div class="w-px bg-line"></div>
-                <div class="min-w-0 flex-1"><div class="flex items-start gap-2"><h2 class="font-bold leading-snug" x-text="item.title"></h2><span x-show="isAttending(item)" class="text-primary shrink-0" title="En mi agenda">●</span></div><p x-show="item.description" x-text="item.description" class="muted text-xs mt-1 line-clamp-2"></p><div class="flex flex-wrap gap-1.5 mt-3"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span><span class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="`${categoryIcon(item.category)} ${categoryLabel(item.category)}`"></span></div></div>
-                <button @click="toggleAttending(item)" class="touch-target self-center rounded-2xl shrink-0 text-xl" :class="isAttending(item) ? 'bg-primary/15 text-primary' : 'bg-bg muted hover:text-primary'" :aria-label="isAttending(item) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'" :aria-pressed="isAttending(item)"><span x-text="isAttending(item) ? '●' : '+'"></span></button>
-              </article>
-            </template>
+          <div x-show="viewMode === 'day'">
+            <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
+            <div x-show="days.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
+            <div x-show="days.length > 0 && currentDayItems().length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">No encontramos actividades</p><p class="muted text-sm mt-1">Probá otro filtro o habilitá el contenido +18.</p></div>
+            <div class="relative space-y-2">
+              <template x-for="item in currentDayItems()" :key="item.id">
+                <article class="surface rounded-2xl p-4 flex gap-3 content-auto" :class="isAttending(item) ? 'border-primary/70 bg-primary/[.04]' : ''">
+                  <div class="w-14 shrink-0 text-center pt-0.5"><p class="text-sm font-black text-primary" x-text="formatTime(item.start_time)"></p><p class="muted text-[11px] mt-1" x-text="formatTime(item.end_time)"></p></div>
+                  <div class="w-px bg-line"></div>
+                  <div class="min-w-0 flex-1"><div class="flex items-start gap-2"><h2 class="font-bold leading-snug" x-text="item.title"></h2><span x-show="isAttending(item)" class="text-primary shrink-0" title="En mi agenda">●</span></div><p x-show="item.description" x-text="item.description" class="muted text-xs mt-1 line-clamp-2"></p><div class="flex flex-wrap gap-1.5 mt-3"><span x-show="item.room" class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="item.room"></span><span class="px-2 py-1 rounded-lg border text-[11px]" :class="badgeClass(item.classification)" x-text="item.classification"></span><span class="px-2 py-1 rounded-lg bg-bg muted text-[11px]" x-text="`${categoryIcon(item.category)} ${categoryLabel(item.category)}`"></span></div></div>
+                  <button @click="toggleAttending(item)" class="touch-target self-center rounded-2xl shrink-0 text-xl" :class="isAttending(item) ? 'bg-primary/15 text-primary' : 'bg-bg muted hover:text-primary'" :aria-label="isAttending(item) ? 'Quitar de mi agenda' : 'Agregar a mi agenda'" :aria-pressed="isAttending(item)"><span x-text="isAttending(item) ? '●' : '+'"></span></button>
+                </article>
+              </template>
+            </div>
+          </div>
+
+          <!-- Schedule grid view -->
+          <div x-show="viewMode === 'schedule'" x-cloak x-data="{ sg: scheduleGrid() }">
+            <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
+            <div x-show="sg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
+            <div x-show="sg.slots.length > 0" class="overflow-x-auto -mx-4 md:-mx-0">
+              <table class="w-full min-w-[500px] text-sm border-separate" style="border-spacing:3px">
+                <thead>
+                  <tr>
+                    <th class="sticky left-0 z-10 bg-bg text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 min-w-[60px]">Hora</th>
+                    <template x-for="room in sg.rooms" :key="room">
+                      <th class="bg-surface text-left text-[11px] uppercase tracking-wider muted font-semibold px-2 py-2 rounded-lg min-w-[150px]" x-text="room"></th>
+                    </template>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="slot in sg.slots" :key="slot">
+                    <tr>
+                      <td class="sticky left-0 z-10 bg-bg text-xs font-bold text-primary align-top px-2 py-1.5 whitespace-nowrap"><span x-text="slot"></span></td>
+                      <template x-for="room in sg.rooms" :key="room">
+                        <td class="align-top surface rounded-lg p-1.5 min-h-[48px]">
+                          <template x-for="item in (sg.grid[slot]?.[room] || [])" :key="item.id">
+                            <div class="rounded-xl px-2 py-1.5 mb-1 text-xs cursor-pointer border-l-2 transition-colors last:mb-0" :class="isAttending(item) ? 'bg-primary/10 border-primary text-ink' : 'bg-bg border-transparent hover:border-primary/30'" @click="toggleAttending(item)">
+                              <div class="flex items-start justify-between gap-1">
+                                <span class="font-semibold leading-tight" x-text="item.title"></span>
+                                <span x-show="isAttending(item)" class="text-primary shrink-0 text-[10px]">●</span>
+                              </div>
+                              <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[10px] muted" x-text="`${formatTime(item.start_time)}-${formatTime(item.end_time)}`"></span>
+                                <span class="px-1 rounded border text-[10px]" :class="badgeClass(item.classification)" x-text="item.classification"></span>
+                              </div>
+                            </div>
+                          </template>
+                        </td>
+                      </template>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
           </div>
           <div class="flex flex-wrap gap-2 mt-8"><button @click="$dispatch('open-import-modal', event.id)" class="touch-target px-4 rounded-2xl bg-primary text-sm font-bold">＋ Importar schedule</button><button @click="showDeleteConfirm = true" class="touch-target px-4 rounded-2xl surface text-sm text-danger">Eliminar evento</button></div>
           <div x-show="showDeleteConfirm" x-cloak class="surface rounded-2xl border-danger/40 p-4 mt-3"><p class="text-sm">¿Eliminar este evento y todas sus actividades?</p><div class="flex gap-2 mt-3"><button @click="confirmDelete" :disabled="deleting" class="touch-target px-4 rounded-xl bg-danger text-sm font-bold" x-text="deleting ? 'Eliminando…' : 'Sí, eliminar'"></button><button @click="cancelDelete" class="touch-target px-4 rounded-xl bg-bg muted text-sm">Cancelar</button></div></div>

@@ -1,4 +1,4 @@
-// src/components/event-detail.js — mobile schedule timeline with filters
+// src/components/event-detail.js — mobile schedule timeline with filters + schedule grid
 import { deleteEvent, getEvent } from '../api.js';
 import { getSnapshot, setSnapshot } from '../lib/cache.js';
 import { KEYS, readSession, writeSession } from '../lib/storage.js';
@@ -19,6 +19,7 @@ export default () => ({
   searchQuery: '',
   filterCategory: 'all',
   showAdult: false,
+  viewMode: 'day', // 'day' | 'schedule'
 
   async init() {
     const ui = readSession(KEYS.ui, {});
@@ -192,5 +193,50 @@ export default () => ({
 
   formatCachedAt() {
     return this.cachedAt ? new Date(this.cachedAt).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) : '';
+  },
+
+  // ── Schedule grid view ──
+
+  scheduleGrid() {
+    const items = this.currentDayItems();
+    if (items.length === 0) return { rooms: [], slots: [], grid: {} };
+
+    const rooms = [...new Set(items.map(i => i.room).filter(Boolean))].sort();
+    if (rooms.length === 0) rooms.push('Sin sala');
+
+    // Group items by (start_time, room)
+    const byTime = {};
+    for (const item of items) {
+      const t = item.start_time;
+      if (!byTime[t]) byTime[t] = {};
+      const r = item.room || 'Sin sala';
+      if (!byTime[t][r]) byTime[t][r] = [];
+      byTime[t][r].push(item);
+    }
+
+    const slots = Object.keys(byTime).sort();
+
+    // Mark occupied slots for multi-hour events (so we can skip rendering them later)
+    const occupied = new Set();
+    for (let i = 0; i < slots.length; i++) {
+      const slot = slots[i];
+      for (const room of rooms) {
+        const itemsHere = byTime[slot][room] || [];
+        for (const item of itemsHere) {
+          // Check which subsequent slots this event occupies
+          for (let j = i + 1; j < slots.length; j++) {
+            if (item.end_time && slots[j] < item.end_time) {
+              occupied.add(`${slots[j]}:${room}:${item.id}`);
+            } else break;
+          }
+        }
+      }
+    }
+
+    return { rooms, slots, grid: byTime, occupied };
+  },
+
+  isSlotOccupied(slot, room, itemId) {
+    return this.scheduleGrid().occupied.has(`${slot}:${room}:${itemId}`);
   },
 });
