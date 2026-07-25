@@ -9,6 +9,7 @@ export default () => ({
   activeDay: null,
   agendaDays: [],
   sg: null,
+  confirmItem: null, // item pending removal confirmation
 
   async init() {
     if (location.pathname === '/agenda') await this.fetchAll();
@@ -78,6 +79,15 @@ export default () => ({
     if (eventId) {
       window.Alpine?.store?.('app')?.setAttending(eventId, item.id, false);
     }
+    this.confirmItem = null;
+  },
+
+  askRemove(item) {
+    this.confirmItem = item;
+  },
+
+  cancelRemove() {
+    this.confirmItem = null;
   },
 
   hasConflict(item, day) {

@@ -261,10 +261,10 @@
                   <template x-for="room in sg.rooms" :key="room">
                     <td class="align-top surface rounded-lg p-1.5 min-h-[48px]">
                       <template x-for="item in (sg.grid[slot]?.[room] || [])" :key="item.id">
-                        <div class="rounded-xl px-2 py-1.5 mb-1 text-xs cursor-pointer border-l-2 transition-colors last:mb-0" :class="item._eventId ? 'bg-primary/10 border-primary text-ink' : 'bg-bg border-transparent hover:border-primary/30'" @click="removeAttending(item)">
+                        <div class="rounded-xl px-2 py-1.5 mb-1 text-xs border-l-2 transition-colors last:mb-0" :class="item._eventId ? 'bg-primary/10 border-primary text-ink' : 'bg-bg border-transparent'">
                           <div class="flex items-start justify-between gap-1">
                             <span class="font-semibold leading-tight" x-text="item.title"></span>
-                            <span class="text-primary shrink-0 text-[10px]">●</span>
+                            <button @click="askRemove(item)" class="shrink-0 text-danger/70 hover:text-danger transition-colors p-0.5 -mr-0.5 -mt-0.5" aria-label="Quitar de mi agenda">🗑️</button>
                           </div>
                           <div class="flex items-center gap-1.5 mt-1">
                             <span class="text-[10px] muted" x-text="`${formatTime(item.start_time)}-${formatTime(item.end_time)}`"></span>
@@ -281,6 +281,22 @@
           </table>
         </div>
         <div x-show="sg && sg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">⌕</p><p class="font-semibold mt-2">Sin actividades este día</p></div>
+
+        <!-- Remove confirmation dialog -->
+        <div x-show="confirmItem" x-cloak x-transition class="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center" @keydown.escape.window="cancelRemove()">
+          <div class="surface-raised w-full md:max-w-sm rounded-t-3xl md:rounded-3xl p-5 md:p-6" @click.stop>
+            <div class="text-center">
+              <p class="text-3xl">🗑️</p>
+              <h3 class="font-bold text-lg mt-3">¿Quitar de tu agenda?</h3>
+              <p class="muted text-sm mt-2">Vas a sacar <strong x-text="confirmItem?.title"></strong> de tu lista personal.</p>
+              <p class="muted text-xs mt-1">Podés volver a agregarlo después desde el evento.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+              <button @click="cancelRemove()" class="flex-1 touch-target py-3 rounded-2xl surface text-sm font-semibold">Cancelar</button>
+              <button @click="removeAttending(confirmItem)" class="flex-1 touch-target py-3 rounded-2xl bg-danger text-sm font-bold text-white">Quitar</button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   </main>
