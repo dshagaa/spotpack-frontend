@@ -15,6 +15,7 @@ export default () => ({
   focusedSg: null,
   detailItem: null,      // detail dialog
   confirmItem: null,     // remove confirmation
+  confirmClean: null,    // clean-all confirmation event
 
   // ── Cross-event schedule (legacy, not used in new flow) ──
   activeDay: null,
@@ -127,6 +128,24 @@ export default () => ({
 
   askRemove(item) { this.confirmItem = item; },
   cancelRemove() { this.confirmItem = null; },
+
+  askCleanEvent(event) { this.confirmClean = event; },
+  askCleanFocused() { this.confirmClean = this.focusedEvent; },
+  cancelClean() { this.confirmClean = null; },
+  confirmCleanAll() {
+    const event = this.confirmClean;
+    if (!event) { this.cancelClean(); return; }
+    const store = window.Alpine?.store?.('app');
+    if (!store) { this.cancelClean(); return; }
+    for (const day of event.days) {
+      for (const item of day.items) {
+        store.setAttending(event.id, item.id, false);
+      }
+    }
+    this.confirmClean = null;
+    this.confirmItem = null;
+    this.fetchAll();
+  },
   showDetail(item) { this.detailItem = item; },
   closeDetail() { this.detailItem = null; },
 
