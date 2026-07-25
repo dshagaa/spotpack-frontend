@@ -143,7 +143,7 @@
           </div>
 
           <!-- Schedule grid view -->
-          <div x-show="viewMode === 'schedule'" x-cloak x-data="{ sg: scheduleGrid() }">
+          <div x-show="viewMode === 'schedule'" x-cloak>
             <div class="flex items-center justify-between mt-6 mb-3"><p class="muted text-xs" x-text="`${currentDayItems().length} actividades`"></p><p x-show="stale" x-cloak class="text-warning text-xs">Sin conexión · <span x-text="formatCachedAt()"></span></p></div>
             <div x-show="sg.slots.length === 0" class="surface rounded-3xl p-8 text-center"><p class="text-2xl">✦</p><p class="font-semibold mt-2">Schedule vacío</p><p class="muted text-sm mt-1">Importá una imagen para agregar actividades.</p></div>
             <div x-show="sg.slots.length > 0" class="overflow-x-auto -mx-4 md:-mx-0">
