@@ -26,10 +26,10 @@
 |    components/                               |
 |      api-key.js       ← API key input        |
 |      event-list.js    ← Home (event cards)    |
-|      event-detail.js  ← Event + items + filters + attending toggle |
+|      event-detail.js  ← Event detail w/ day + schedule grid, filters, attending |
 |      create-event.js  ← Modal new event       |
 |      import-modal.js  ← Upload image → AI    |
-|      my-agenda.js     ← "Mi Agenda" (attending items across events) |
+|      my-agenda.js     ← "Mi Agenda" (event list → detail drill-down, day/schedule views) |
 │  tests/                                      │
 │    api.test.js        ← Vitest unit tests     │
 │    e2e/               ← Playwright E2E        │
@@ -68,6 +68,10 @@
 
 Base URL configurable via `localStorage.spotpack_api_url`. Default: `http://127.0.0.1:54321/functions/v1`
 
+All requests include:
+- `x-api-key` header — SpotPack API key (from env or localStorage)
+- `apikey` header — Supabase publishable key (`VITE_SUPABASE_PUBLISHABLE_KEY`) for Kong JWT auth (newer Supabase versions require this to pass through the API gateway)
+
 | Function | Method | Auth | Params | Returns |
 |----------|--------|------|--------|---------|
 | `get-events` | GET | general+ | — | `{ events: [...] }` |
@@ -80,7 +84,55 @@ Base URL configurable via `localStorage.spotpack_api_url`. Default: `http://127.
 
 ---
 
-## Global State (Alpine Store)
+## Schedule Grid View
+
+Both **Event Detail** and **My Agenda** have a schedule grid mode (📊 Horario) that shows activities in a room × time matrix.
+
+**Grid layout:**
+- Columns = rooms/salons (sorted alphabetically)
+- Rows = start times (sorted)
+- Each cell shows compact cards (title only, or title + event name in agenda)
+
+**Interaction:**
+- Click a card → opens detail dialog with full info (title, description, time, room, classification, category, event name)
+- Dialog has action button: "Agregar a mi agenda" (event detail) or "Quitar de mi agenda" (agenda)
+- Escape or backdrop click closes the dialog
+
+**Day view filters (event detail):**
+- `searchQuery` — text search on title + description
+- `filterCategory` — category chips (Panel, Meetup, Workshop, etc.)
+- `showAdult` — toggle +18/+21 visibility
+- `filterRoom` — room/salon chips (day view only)
+
+## My Agenda Flow
+
+Two-level navigation within the agenda page:
+
+```
+Event List → click event → Event Detail (attending items only)
+   ↑                              |
+   └── ← "Todas tus agendas" ─────┘
+```
+
+**Event List:**
+- Cards show event name, date range, location, attending count
+- 🗑️ at top-right → confirmation dialog → removes ALL attending for that event
+- Click card → drill into event detail
+
+**Event Detail (agenda):**
+- Back button to event list
+- "Ver evento completo ↗" link to the full event-detail page
+- Day selector (if multiple days with attending items)
+- View toggle: 📋 Día | 📊 Horario
+- Day view: attending items list with 🗑️ at top-right (confirmation dialog)
+- Schedule grid: compact cards with event name, click → detail dialog
+- "Limpiar todas las selecciones" button at bottom
+- Removing an item updates local state (does NOT exit the detail view)
+
+**Confirmation dialogs:**
+- Single item removal → "¿Quitar de tu agenda?" dialog
+- Clean all → "¿Limpiar todas las selecciones?" dialog
+- Both with Cancel/Confirm buttons, Escape to close
 
 The global store in `src/store.js` provides:
 
