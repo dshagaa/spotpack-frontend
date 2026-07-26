@@ -104,3 +104,39 @@
 - Production build passing
 - Built artifacts verified: service worker present, manifest present, Alpine CDN absent
 
+---
+
+## 2026-07-25 — Schedule Grid, Agenda Redesign, Auth Fix
+
+### Supabase Auth Fix (PR #20)
+- Added `apikey` header with `VITE_SUPABASE_PUBLISHABLE_KEY` to all API requests
+- Kong API gateway transforms this into a valid JWT for the edge runtime
+- `.env` / `.env.example` updated with `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+### Schedule Grid View (PR #21)
+- Room × time matrix for both Event Detail and My Agenda
+- View toggle: 📋 Día / 📊 Horario
+- Columns = rooms (sorted), Rows = start times
+- Compact cards (2-line: title + room or event name)
+- Detail dialog on click (title, description, time, room, classification, category, action button)
+
+### Room Filter (PR #23)
+- `filterRoom` state + `availableRooms()` computed from active day's items
+- Room chip bar in day view (only): "Todas las salas" + per-room buttons
+- Persisted to sessionStorage
+
+### Agenda Redesign (PR #24, #26, #27, #28)
+- Two-level navigation: event list → event detail drill-down
+- Event list cards with attending count badge
+- Detail view: day selector, view toggle, day list + schedule grid
+- Delete buttons always at top-right of cards
+- Confirmation dialogs for all removes (single item + clean-all)
+- Removing an item updates local state — **does not exit** the detail view
+- Removed `refreshCounter` watcher to prevent unwanted `fetchAll()` on attending changes
+- Clean-all dialog moved outside detail block so it shows from both list and detail pages
+
+### Detail Dialog for Grid Cards (PR #25)
+- Compact grid cards: click → modal with full item info
+- Event detail dialog: "Agregar/Quitar de mi agenda" button
+- Agenda dialog: 🗑️ "Quitar de mi agenda" → confirmation dialog
+
