@@ -26,7 +26,6 @@ export default () => ({
   async init() {
     if (location.pathname === '/agenda') await this.fetchAll();
     this.$watch?.('$store.app.view', (view) => { if (view === 'agenda') this.fetchAll(); });
-    this.$watch?.('$store.app.refreshCounter', () => this.fetchAll());
   },
 
   async fetchAll() {
@@ -118,10 +117,25 @@ export default () => ({
   removeAttending(item) {
     const eventId = this.focusedEvent?.id ||
       this.events.find((e) => e.days.some((d) => d.items.some((i) => i.id === item.id)))?.id;
-    if (eventId) {
-      window.Alpine?.store?.('app')?.setAttending(eventId, item.id, false);
-      // Refetch to update list
-      this.fetchAll();
+    if (!eventId) { this.confirmItem = null; return; }
+    window.Alpine?.store?.('app')?.setAttending(eventId, item.id, false);
+
+    // Remove from local state without leaving detail view
+    if (this.focusedEvent && this.subPage === 'detail') {
+      for (const day of this.focusedEvent.days) {
+        const idx = day.items.findIndex((i) => i.id === item.id);
+        if (idx !== -1) { day.items.splice(idx, 1); break; }
+      }
+      this.focusedEvent.days = this.focusedEvent.days.filter((d) => d.items.length > 0);
+      this.focusedEvent.attendingCount = this.focusedEvent.days.reduce((s, d) => s + d.items.length, 0);
+      if (this.focusedEvent.days.length === 0) {
+        this.backToEvents();
+      } else {
+        if (!this.focusedEvent.days.some((d) => d.date === this.focusedActiveDay)) {
+          this.focusedActiveDay = this.focusedEvent.days[0].date;
+        }
+        this.focusedSg = this.computeFocusedGrid();
+      }
     }
     this.confirmItem = null;
   },
